@@ -578,44 +578,47 @@ footer{
   </p>
 
   <div id="bouquet-container" class="bouquet-wrap reveal reveal-delay-2">
-    <!-- ── SVG paper wrap — full bouquet silhouette ── -->
+    <!-- ── SVG paper wrap — cone bouquet silhouette ── -->
     <svg viewBox="0 0 360 620" fill="none" xmlns="http://www.w3.org/2000/svg"
          style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
       <defs>
-        <radialGradient id="rg" cx="50%" cy="42%" r="50%">
-          <stop offset="0%" stop-color="rgba(210,0,20,0.22)"/>
+        <radialGradient id="rg" cx="50%" cy="38%" r="48%">
+          <stop offset="0%" stop-color="rgba(210,0,20,0.30)"/>
           <stop offset="100%" stop-color="rgba(210,0,20,0)"/>
         </radialGradient>
         <filter id="gf" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="20"/>
+          <feGaussianBlur stdDeviation="22"/>
         </filter>
-        <radialGradient id="ps" cx="50%" cy="50%" r="50%">
-          <stop offset="70%" stop-color="rgba(0,0,0,0)"/>
-          <stop offset="100%" stop-color="rgba(0,0,0,0.45)"/>
-        </radialGradient>
+        <linearGradient id="cs" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stop-color="rgba(0,0,0,0.55)"/>
+          <stop offset="28%"  stop-color="rgba(255,255,255,0.06)"/>
+          <stop offset="50%"  stop-color="rgba(255,255,255,0.10)"/>
+          <stop offset="72%"  stop-color="rgba(255,255,255,0.06)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.55)"/>
+        </linearGradient>
       </defs>
       <!-- Ambient rose glow -->
-      <ellipse cx="180" cy="162" rx="162" ry="155" fill="url(#rg)" filter="url(#gf)"/>
-      <!-- Main paper circle -->
-      <circle cx="180" cy="162" r="168" fill="#111"/>
-      <circle cx="180" cy="162" r="168" fill="url(#ps)"/>
-      <!-- Lower belly wrap — smooth teardrop to handle -->
-      <path d="M14 162 C8 245,22 340,62 408 C98 465,142 492,166 505 L158 558 L202 558 L194 505 C218 492,262 465,298 408 C338 340,352 245,346 162 Z" fill="#141414"/>
-      <!-- Inner fold depth line -->
-      <path d="M32 162 C26 240,40 328,76 393 C110 450,152 476,172 490 C188 476,228 450,262 393 C298 328,312 240,306 162"
-            stroke="rgba(255,255,255,0.03)" stroke-width="2" fill="none"/>
-      <!-- Handle collar -->
-      <path d="M158 558 Q180 572,202 558 L206 598 L154 598 Z" fill="#0e0e0e"/>
-      <path d="M160 558 Q180 570,200 558" stroke="rgba(255,255,255,0.10)" stroke-width="1.5" fill="none"/>
+      <ellipse cx="180" cy="158" rx="148" ry="135" fill="url(#rg)" filter="url(#gf)"/>
+      <!-- Cone body: wide collar at top, smooth taper to handle -->
+      <path d="M26 262 Q180 243,334 262 Q342 390,220 556 L140 556 Q18 390,26 262 Z" fill="#111"/>
+      <!-- Side depth shading -->
+      <path d="M26 262 Q180 243,334 262 Q342 390,220 556 L140 556 Q18 390,26 262 Z" fill="url(#cs)"/>
+      <!-- Collar fold highlight -->
+      <path d="M26 262 Q180 248,334 262" stroke="rgba(255,255,255,0.18)" stroke-width="2" fill="none"/>
+      <!-- Second softer fold line -->
+      <path d="M34 275 Q180 261,326 275" stroke="rgba(255,255,255,0.06)" stroke-width="1" fill="none"/>
+      <!-- Center crease -->
+      <line x1="180" y1="260" x2="180" y2="553" stroke="rgba(255,255,255,0.035)" stroke-width="1.2"/>
       <!-- Handle band -->
-      <rect x="152" y="594" width="56" height="22" rx="3" fill="#0b0b0b"/>
+      <rect x="134" y="552" width="92" height="30" rx="6" fill="#0c0c0c"/>
+      <path d="M140 564 Q180 571,220 564" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
       <!-- Stems -->
-      <line x1="160" y1="613" x2="152" y2="627" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
-      <line x1="169" y1="613" x2="163" y2="629" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
-      <line x1="177" y1="613" x2="174" y2="631" stroke="#2d6a4f" stroke-width="3.5" stroke-linecap="round"/>
-      <line x1="183" y1="613" x2="186" y2="631" stroke="#2d6a4f" stroke-width="3.5" stroke-linecap="round"/>
-      <line x1="191" y1="613" x2="197" y2="629" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
-      <line x1="200" y1="613" x2="208" y2="627" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="162" y1="614" x2="155" y2="628" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="171" y1="614" x2="165" y2="630" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="178" y1="614" x2="176" y2="632" stroke="#2d6a4f" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="183" y1="614" x2="186" y2="632" stroke="#2d6a4f" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="191" y1="614" x2="197" y2="630" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="200" y1="614" x2="207" y2="628" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round"/>
     </svg>
 
     <!-- Rose dome — filled by JS, scaled by --rose-scale CSS var -->
@@ -632,7 +635,7 @@ footer{
     <div class="thing-item reveal reveal-delay-1">
       <div class="thing-circle">💜</div>
       <span class="thing-label">Deep Purple</span>
-      <span class="thing-sub">her favorite color</span>
+      <span class="thing-sub">your favorite color</span>
     </div>
     <div class="thing-item reveal reveal-delay-2">
       <div class="thing-circle">🌹</div>
@@ -657,17 +660,17 @@ footer{
     <div class="thing-item reveal reveal-delay-6">
       <div class="thing-circle">❄️</div>
       <span class="thing-label">Winter</span>
-      <span class="thing-sub">her season</span>
+      <span class="thing-sub">your season</span>
     </div>
     <div class="thing-item reveal reveal-delay-1">
       <div class="thing-circle">🎂</div>
       <span class="thing-label">December 11</span>
-      <span class="thing-sub">her special day</span>
+      <span class="thing-sub">your special day</span>
     </div>
     <div class="thing-item reveal reveal-delay-2">
       <div class="thing-circle">📞</div>
       <span class="thing-label">Calls &amp; FaceTime</span>
-      <span class="thing-sub">she loves to connect</span>
+      <span class="thing-sub">you love to connect</span>
     </div>
   </div>
 
@@ -694,7 +697,7 @@ footer{
       <span class="movie-title">Aladdin</span>
     </div>
     <div class="movie-card reveal reveal-delay-6" style="background:linear-gradient(135deg,rgba(251,113,133,.38),rgba(253,224,71,.38))">
-      <span class="movie-emoji">💀</span>
+      <span class="movie-emoji">❤️</span>
       <span class="movie-title">Book of Life</span>
     </div>
   </div>
