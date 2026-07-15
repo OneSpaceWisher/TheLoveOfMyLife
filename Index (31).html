@@ -897,10 +897,6 @@ footer{
   const GOLDEN = 137.508 * (Math.PI / 180);
   const SPACING = 19;
   const Y_FLATTEN = 0.82;
-  const COUNT = 58;
-
-  // Pre-seeded pseudo-random (deterministic)
-  function seededRand(seed){ return ((seed * 1664525 + 1013904223) & 0xffffffff) / 0xffffffff; }
 
   // Build rose SVG — three layers of rounded petals + tight center bud
   function roseNode(rot, depth){
