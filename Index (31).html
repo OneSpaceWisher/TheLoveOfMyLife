@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Osstivia by OssiaLabs - Precision Bone Modulation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #f5a623;
+  --accent:  #f97316;
+  --bg:      #09090b;
+  --card:    #111114;
+  --card2:   #16161a;
+  --border:  rgba(255,255,255,0.07);
+  --muted:   rgba(255,255,255,0.48);
+  --fg:      #f5f5f5;
+  --gold:    #f5a623;
+  --amber:   #f97316;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: #09090b !important; background-color: #09090b !important; color: var(--fg); font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; }
+.mono { font-family: 'Space Mono', monospace; }
+
+/* Animations */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.4); } 50% { box-shadow: 0 0 0 12px rgba(245,166,35,0); } }
+@keyframes gradMove { 0%,100% { background-position:0% 50%; } 50% { background-position:100% 50%; } }
+@keyframes shimmer  { 0% { transform:translateX(-100%); } 100% { transform:translateX(200%); } }
+@keyframes spin-slow { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+@keyframes float    { 0%,100% { transform:translateY(0px); } 50% { transform:translateY(-10px); } }
+@keyframes glow     { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+
+.animate-fadeup  { animation: fadeUp 0.7s ease both; }
+.animate-fadein  { animation: fadeIn 0.6s ease both; }
+.animate-float   { animation: float 4s ease-in-out infinite; }
+.animate-glow    { animation: glow 2.5s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 20s linear infinite; }
+.pulse-gold      { animation: pulse-gold 2.5s infinite; }
+
+/* Hero gradient text */
+.hero-title-1 { 
+  font-size: clamp(44px, 9vw, 128px) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--fg);
+}
+.hero-title-2 {
+  font-size: clamp(36px, 7.5vw, 112px) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  background: linear-gradient(90deg, var(--gold), var(--amber), var(--gold));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradMove 3s linear infinite;
+}
+/* Dark theme nav scroll */
+.nav-scrolled { background: rgba(9,9,11,0.92) !important; backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+
+/* Section utils */
+.section-label { font-size: 11px; font-weight:800; letter-spacing:.15em; text-transform:uppercase; color: var(--primary); font-family:'Space Mono',monospace; }
+.section-h { font-size: clamp(28px, 5vw, 64px) !important; font-weight:900 !important; letter-spacing:-.03em; line-height:1.05; }
+.section-sub { font-size: clamp(15px, 1.5vw, 20px) !important; color: var(--muted); line-height:1.7; }
+
+/* Cards */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; }
+.card-hover { transition: border-color .3s, box-shadow .3s; }
+.card-hover:hover { border-color: rgba(245,166,35,.35); box-shadow: 0 0 40px rgba(245,166,35,.08); }
+
+/* Graph canvas */
+#graph-canvas { display:block; cursor:crosshair; touch-action: none; }
+#graph-node-panel {
+  position:absolute; top:0; right:0; height:100%; width:min(460px, 100%);
+  background: rgba(10,10,12,0.97); backdrop-filter:blur(20px);
+  border-left: 1px solid var(--border);
+  overflow-y:auto; z-index:30;
+  transition: transform .45s cubic-bezier(.25,.46,.45,.94);
+  transform: translateX(100%);
+  padding: 2rem;
+}
+#graph-node-panel.open { transform: translateX(0); }
+
+/* Coverflow */
+.coverflow-wrap { perspective: 1200px; position:relative; height:520px; display:flex; align-items:center; justify-content:center; overflow:hidden; contain:paint; }
+.cf-item {
+  position:absolute; width:260px; cursor:pointer;
+  transition: all .45s cubic-bezier(.25,.46,.45,.94);
+  user-select:none;
+}
+.cf-item img { width:100%; height:200px; object-fit:cover; object-position:top; border-radius:.75rem; }
+.cf-label { font-family:'Space Mono',monospace; font-size:.65rem; color:var(--muted); padding:.4rem .5rem 0; }
+
+/* Lightbox */
+#lightbox {
+  display:none; position:fixed; inset:0; z-index:100;
+  background:rgba(0,0,0,.96); align-items:center; justify-content:center;
+}
+#lightbox.open { display:flex; }
+#lightbox img { max-width:92vw; max-height:88vh; border-radius:.75rem; border:1px solid var(--border); }
+
+/* Dosing table */
+.dose-table { width:100%; border-collapse:collapse; }
+.dose-table th,
+.dose-table td { padding:.75rem 1.25rem; text-align:left; font-family:'Space Mono',monospace; font-size:.8rem; border-bottom:1px solid var(--border); }
+.dose-table th { font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-size:.65rem; }
+.dose-table tr:hover td { background:rgba(245,166,35,.04); }
+
+/* Scroll reveal */
+.reveal { opacity:0; transform:translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+
+/* Nav mobile drawer */
+#mobile-drawer {
+  display:none; position:fixed; inset:0; z-index:60;
+  background:rgba(9,9,11,.98); flex-direction:column;
+  align-items:center; justify-content:center; gap:2rem;
+}
+#mobile-drawer.open { display:flex; }
+
+/* Graph controls */
+#graph-controls {
+  position:absolute; top:80px; left:12px; z-index:20;
+  background:rgba(0,0,0,.78); backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.1); border-radius:1rem;
+  padding:1rem 1.1rem; max-width:190px;
+}
+#zoom-hint {
+  position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.65); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.1); border-radius:9999px;
+  padding:.3rem 1rem; font-size:.65rem; font-family:'Space Mono',monospace;
+  color:rgba(255,255,255,.45); white-space:nowrap; pointer-events:none; z-index:20;
+}
+.cat-btn { display:flex; align-items:center; gap:.5rem; padding:.35rem .5rem; border-radius:.5rem; border:none; background:transparent; cursor:pointer; font-family:'Space Mono',monospace; font-size:.7rem; color:rgba(255,255,255,.45); transition:background .2s,color .2s; width:100%; }
+.cat-btn.active { background:rgba(255,255,255,.1); color:#fff; }
+.cat-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* Info badge for STRONG nodes */
+.strong-badge { display:flex; align-items:flex-start; gap:.6rem; border-radius:.75rem; padding:.8rem 1rem; margin-top:1.5rem; }
+.strong-badge svg { flex-shrink:0; margin-top:.1rem; }
+
+/* Tagline badge */
+.benefit-tag { display:inline-block; padding:.25rem .75rem; border-radius:9999px; font-size:.65rem; font-family:'Space Mono',monospace; font-weight:700; border:1px solid rgba(245,166,35,.35); color:var(--primary); background:rgba(245,166,35,.08); }
+
+/* Timeline step */
+.step-num { width:2.2rem; height:2.2rem; border-radius:9999px; background:rgba(245,166,35,.15); border:1px solid rgba(245,166,35,.35); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:.85rem; color:var(--primary); flex-shrink:0; }
+
+/* Gallery */
+.gallery-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:1.25rem; }
+.gallery-item { background:var(--card); border:1px solid var(--border); border-radius:1rem; overflow:hidden; cursor:pointer; transition:border-color .3s; }
+.gallery-item:hover { border-color:rgba(245,166,35,.35); }
+.gallery-item img { width:100%; aspect-ratio:1; object-fit:contain; padding:.5rem; background:#fff; }
+.gallery-caption { padding:.75rem 1rem; font-family:'Space Mono',monospace; font-size:.65rem; color:var(--muted); line-height:1.5; }
+
+/* Responsive */
+@media (max-width:768px) {
+  .hero-title-1 { font-size: clamp(38px, 12vw, 64px) !important; }
+  .hero-title-2 { font-size: clamp(30px, 10vw, 52px) !important; }
+  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:.75rem; }
+  .dose-table th, .dose-table td { padding:.5rem .75rem; }
+  .section-h { font-size: clamp(24px, 8vw, 42px) !important; }
+  .section-sub { font-size: 15px !important; }
+  #network { height:65dvh !important; }
+  #graph-controls { top:8px !important; left:8px !important; right:8px !important; max-width:none !important; padding:.5rem .7rem !important; }
+  #graph-controls > div:first-child { font-size:.85rem !important; }
+  #zoom-hint { font-size:.55rem; padding:.25rem .7rem; bottom:8px; }
+  .coverflow-wrap { height:360px !important; }
+  #filter-toggle { display:block !important; }
+  #cat-filters.collapsed { display:none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<header id="nav" style="position:sticky;top:0;z-index:50;padding:1rem 0;background:rgba(9,9,11,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);transition:all .3s;">
+  <div style="max-width:1280px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:center;gap:1rem;">
+    <nav id="desktop-nav" style="display:flex;align-items:center;gap:1.5rem;font-size:13px;font-weight:800;letter-spacing:.1em;flex-wrap:wrap;justify-content:center;">
+      <a href="#network"   style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">NETWORK</a>
+      <a href="#pathways"  style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">PATHWAYS</a>
+      <a href="#compounds" style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">COMPOUNDS</a>
+      <a href="#science"   style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">SCIENCE</a>
+      <a href="#clinical"  style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">CLINICAL</a>
+      <a href="#mechanism" style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">MECHANISM</a>
+      <a href="#systemic"  style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">BENEFITS</a>
+      <a href="#usage"     style="color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">USAGE</a>
+    </nav>
+    <div style="display:flex;align-items:center;">
+      <button id="ham-btn" onclick="document.getElementById('mobile-drawer').classList.toggle('open')" style="display:none;background:none;border:none;color:var(--muted);cursor:pointer;padding:.4rem;" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="19" y2="6"/><line x1="3" y1="11" x2="19" y2="11"/><line x1="3" y1="16" x2="19" y2="16"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Drawer -->
+<div id="mobile-drawer">
+  <button onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="position:absolute;top:1.25rem;right:1.25rem;background:none;border:none;color:var(--muted);cursor:pointer;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <a href="#network"   onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">NETWORK</a>
+  <a href="#pathways"  onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">PATHWAYS</a>
+  <a href="#compounds" onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">COMPOUNDS</a>
+  <a href="#science"   onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">SCIENCE</a>
+  <a href="#clinical"  onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">CLINICAL</a>
+  <a href="#mechanism" onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">MECHANISM</a>
+  <a href="#systemic"  onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">BENEFITS</a>
+  <a href="#usage"     onclick="document.getElementById('mobile-drawer').classList.remove('open')" style="font-size:1.8rem;font-weight:900;color:var(--muted);text-decoration:none;letter-spacing:.05em;transition:color .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">USAGE</a>
+</div>
+
+<!-- HERO -->
+<section id="hero" style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:5rem 1.5rem 5rem;position:relative;overflow:hidden;background:#09090b;background-color:#09090b;">
+  <!-- Animated background rings -->
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+    <div class="animate-spin-slow" style="position:absolute;width:min(700px,90vw);height:min(700px,90vw);border-radius:50%;border:1px solid rgba(245,166,35,.06);"></div>
+    <div style="position:absolute;width:min(500px,70vw);height:min(500px,70vw);border-radius:50%;border:1px solid rgba(245,166,35,.1);animation:spin-slow 14s linear infinite reverse;"></div>
+    <div style="position:absolute;width:min(320px,50vw);height:min(320px,50vw);border-radius:50%;border:1px solid rgba(245,166,35,.18);"></div>
+    <div class="animate-glow" style="position:absolute;width:min(200px,35vw);height:min(200px,35vw);border-radius:50%;background:radial-gradient(ellipse,rgba(245,166,35,.12) 0%,transparent 70%);"></div>
+  </div>
+  <div style="position:relative;z-index:1;max-width:1000px;">
+    <div class="reveal animate-fadeup" style="margin-bottom:1.5rem;">
+      <span style="font-size:.7rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;font-family:'Space Mono',monospace;color:var(--primary);">OssiaLabs, Science Division</span>
+    </div>
+    <h1 class="reveal hero-title-1" style="animation-delay:.1s;font-size:clamp(44px,9vw,128px)!important;">PRECISION</h1>
+    <h1 class="reveal hero-title-2" style="animation-delay:.18s;font-size:clamp(36px,7.5vw,112px)!important;">BONE MODULATION</h1>
+    <p class="reveal" style="animation-delay:.3s;margin-top:2rem;font-size:clamp(1rem,2.5vw,1.25rem);color:var(--muted);max-width:640px;margin-left:auto;margin-right:auto;line-height:1.7;font-family:'Space Mono',monospace;">
+      Where ancient botanical medicine meets modern nanomedicine. Fructus Ligustri Lucidi engineered to boost the body's response to mechanical stimulation.
+    </p>
+    <div class="reveal" style="animation-delay:.4s;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2.5rem;">
+      <a href="https://ossialabs.com/products/osstivia-snedds-legacy?variant=48083874054362" target="_blank" rel="noopener" style="padding:1rem 2.5rem;background:var(--primary);color:#000;font-weight:900;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--primary)'">GET OSSTIVIA</a>
+      <a href="#network" style="padding:1rem 2.5rem;border:1px solid rgba(255,255,255,.2);color:var(--fg);font-weight:700;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='rgba(255,255,255,.2)'">EXPLORE THE SCIENCE</a>
+    </div>
+    <!-- Stats -->
+    <div class="reveal" style="animation-delay:.5s;display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:4rem;max-width:600px;margin-left:auto;margin-right:auto;">
+      <div>
+        <div style="font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;color:var(--primary);">3X</div>
+        <div style="font-size:.65rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:.25rem;">Concentrated Extract</div>
+      </div>
+      <div>
+        <div style="font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;color:var(--primary);">6+</div>
+        <div style="font-size:.65rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:.25rem;">Pathway Targets</div>
+      </div>
+      <div>
+        <div style="font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;color:var(--primary);">SNEDDS</div>
+        <div style="font-size:.65rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:.25rem;">Nano-Delivery System</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NETWORK GRAPH -->
+<section id="network" style="position:relative;height:100dvh;width:100%;overflow:hidden;border-top:1px solid var(--border);">
+  <div id="graph-wrap" style="position:absolute;inset:0;background:#fff;">
+    <canvas id="graph-canvas"></canvas>
+  </div>
+  <div id="graph-controls">
+    <div style="font-size:1.1rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:.3rem;">PATHWAY NETWORK</div>
+    <div style="font-size:.65rem;font-family:'Space Mono',monospace;color:rgba(255,255,255,.5);margin-bottom:.8rem;">Click nodes for mechanism detail</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+      <div style="font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);">Filter</div>
+      <button id="filter-toggle" onclick="var f=document.getElementById('cat-filters');f.classList.toggle('collapsed');this.textContent=f.classList.contains('collapsed')?'▼ show':'▲ hide';" style="display:none;background:none;border:none;color:rgba(255,255,255,.45);font-size:.6rem;font-family:'Space Mono',monospace;cursor:pointer;padding:0 .2rem;">▲ hide</button>
+    </div>
+    <div id="cat-filters"></div>
+  </div>
+  <div id="zoom-hint">Ctrl + scroll to zoom &nbsp; Click nodes to explore</div>
+  <!-- Node description panel -->
+  <div id="graph-node-panel">
+    <button onclick="document.getElementById('graph-node-panel').classList.remove('open')" style="position:absolute;top:1.25rem;right:1.25rem;background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="15" y1="5" x2="5" y2="15"/><line x1="5" y1="5" x2="15" y2="15"/></svg>
+    </button>
+    <div id="panel-bar" style="width:2.5rem;height:.25rem;border-radius:9999px;background:var(--primary);margin-bottom:1.25rem;"></div>
+    <div id="panel-group" style="font-size:.65rem;font-family:'Space Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.4rem;"></div>
+    <h3 id="panel-title" style="font-size:1.5rem;font-weight:900;color:#fff;margin-bottom:1.25rem;letter-spacing:-.02em;line-height:1.2;"></h3>
+    <p id="panel-desc" style="font-size:.82rem;font-family:'Space Mono',monospace;color:rgba(255,255,255,.68);line-height:1.7;"></p>
+    <div id="panel-img-wrap" style="display:none;margin-top:1rem;">
+      <img id="panel-image" style="width:100%;border-radius:.5rem;cursor:pointer;object-fit:contain;max-height:180px;" onclick="openLightbox(this.src)" alt="Research evidence">
+      <div id="panel-img-cap" style="font-size:.58rem;font-family:'Space Mono',monospace;color:rgba(255,255,255,.38);margin-top:.4rem;line-height:1.45;"></div>
+    </div>
+    <div id="panel-strong" class="strong-badge" style="display:none;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--primary);line-height:1.5;">Strong evidence overlap with mandibular condylar remodeling literature.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SNEDDS / HOW IT WORKS -->
+<section id="snedds" style="padding:7rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:4rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Delivery System</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">THE SNEDDS ADVANTAGE</h2>
+      <p class="section-sub">Standard FLL extracts and powders struggle with first-pass hepatic metabolism. Osstivia's SNEDDS formulation bypasses this entirely, delivering active compounds directly into systemic circulation.</p>
+    </div>
+    <!-- Steps -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem;margin-bottom:4rem;">
+      <div class="card card-hover reveal" style="padding:1.75rem;">
+        <div class="step-num" style="margin-bottom:1rem;">01</div>
+        <h4 style="font-weight:800;font-size:1rem;margin-bottom:.5rem;">Nano-Emulsification</h4>
+        <p style="font-size:.8rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Upon GI contact, SNEDDS spontaneously forms lipid nano-droplets under 200 nm. Dramatically increases surface area for absorption.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;animation-delay:.08s;">
+        <div class="step-num" style="margin-bottom:1rem;">02</div>
+        <h4 style="font-weight:800;font-size:1rem;margin-bottom:.5rem;">P-gp Inhibition</h4>
+        <p style="font-size:.8rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">SNEDDS surfactants inhibit P-glycoprotein efflux transporters, preventing active efflux of FLL compounds back into the gut lumen.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;animation-delay:.16s;">
+        <div class="step-num" style="margin-bottom:1rem;">03</div>
+        <h4 style="font-weight:800;font-size:1rem;margin-bottom:.5rem;">Lymphatic Bypass</h4>
+        <p style="font-size:.8rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Nano-droplets are packaged into chylomicrons absorbed via lymphatic lacteals, completely bypassing hepatic first-pass metabolism.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;animation-delay:.24s;">
+        <div class="step-num" style="margin-bottom:1rem;">04</div>
+        <h4 style="font-weight:800;font-size:1rem;margin-bottom:.5rem;">Systemic Saturation</h4>
+        <p style="font-size:.8rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Active compounds enter circulation at full potency, achieving significantly higher plasma concentrations than conventional oral delivery.</p>
+      </div>
+    </div>
+    <!-- SNEDDS research images -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/SNEDDSResearch.jpg?v=1781479852" alt="SNEDDS Research" loading="lazy">
+        <div class="gallery-caption">SNEDDS self-nanoemulsification mechanism: spontaneous formation of oil-in-water nano-droplets (&lt;200 nm) upon GI contact, expanding intestinal absorption surface area far beyond a conventional capsule</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.07s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/SNEDDSResearch2.jpg?v=1781479850" alt="SNEDDS Research 2" loading="lazy">
+        <div class="gallery-caption">SNEDDS advantages over conventional oral delivery: enhanced solubility, dissolution rate, mucosal permeation, P-gp efflux inhibition, and lymphatic transport for dramatically improved bioavailability</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.14s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/SNEDDSResearch3.jpg?v=1781479850" alt="SNEDDS Research 3" loading="lazy">
+        <div class="gallery-caption">SNEDDS nano-droplet characterization: particle size distribution, zeta potential stability, and dissolution profile in simulated GI fluid demonstrating rapid self-emulsification</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.21s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/SNEDDSResearch4.jpg?v=1781479883" alt="SNEDDS Research 4" loading="lazy">
+        <div class="gallery-caption">Ternary phase diagram for SNEDDS formulation optimization: oil/surfactant/co-surfactant ratios defining the self-emulsification region and nano-droplet formation boundary</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.28s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/1-s2.0-S0378517311001827-fx1.jpg?v=1783411863" alt="SNEDDS mechanism graphical abstract" loading="lazy">
+        <div class="gallery-caption">Self-double-emulsifying nanoparticle structure: oil core and water phases stabilized by hydrophilic and lipophilic emulsifier shells — upon GI contact, SNEDDS spontaneously forms nano-droplets improving intestinal permeation of lipophilic FLL compounds</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.35s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/showGraphicalAbstractImage_1ed58f1c-fd8a-4e3f-8380-1535dc82a33a.jpg?v=1781479883" alt="FLL graphical abstract" loading="lazy">
+        <div class="gallery-caption">Free drug vs SNEDDS intestinal absorption comparison: conventional oral capsule disperses poorly above the mucosal barrier (low bioavailability) versus SNEDDS lipid nano-droplets that efficiently penetrate intestinal epithelium for significantly enhanced systemic absorption</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GROWTH MECHANISMS -->
+<section id="pathways" style="padding:7rem 1.5rem;background:var(--bg);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:1.5rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Molecular Mechanisms</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">GROWTH MECHANISMS</h2>
+      <p class="section-sub">FLL acts on multiple synergistic pathways simultaneously. By using SNEDDS, Osstivia saturates these critical nodes far more effectively than standard extractions or powders.</p>
+    </div>
+    <!-- Dose-dependency alert -->
+    <div class="reveal" style="display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.25rem;border-radius:.75rem;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);margin-bottom:3rem;">
+      <div class="pulse-gold" style="width:.5rem;height:.5rem;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:.35rem;"></div>
+      <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--fg);line-height:1.6;"><strong style="color:var(--primary);">Important:</strong> Osstivia is both dose and time dependent. Consistent, sustained application is required to trigger and maintain the growth pathways documented below.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:1.25rem;">
+      <!-- Pathway cards -->
+      <div class="card card-hover reveal" style="padding:2rem;border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.04);">
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
+          <div>
+            <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#60a5fa;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.2rem;">01 &nbsp; Bone Formation</div>
+            <h4 style="font-size:1.15rem;font-weight:900;color:var(--fg);">Wnt/beta-catenin and BMP-Smad Signaling</h4>
+          </div>
+          <div style="width:.6rem;height:.6rem;border-radius:50%;background:#60a5fa;flex-shrink:0;margin-top:.2rem;"></div>
+        </div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;margin-bottom:.75rem;">FLL active compounds strongly upregulate Wnt and BMP-2 pathways. This triggers expression of RUNX2 and Osterix (Osx), the master transcription factors for osteoblast differentiation. In simple terms: it signals your body to increase production of new bone matrix.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Kong et al. Bioengineered. 2022;13:10640</span>
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Chen et al. Molecules. 2017;22:1469</span>
+        </div>
+      </div>
+      <div class="card card-hover reveal" style="padding:2rem;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04);">
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
+          <div>
+            <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#f87171;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.2rem;">02 &nbsp; Inhibiting Bone Breakdown</div>
+            <h4 style="font-size:1.15rem;font-weight:900;color:var(--fg);">OPG/RANKL/RANK Axis</h4>
+          </div>
+          <div style="width:.6rem;height:.6rem;border-radius:50%;background:#f87171;flex-shrink:0;margin-top:.2rem;"></div>
+        </div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;margin-bottom:.75rem;">FLL significantly improves the OPG/RANKL ratio. By downregulating RANKL and upregulating Osteoprotegerin (OPG), it prevents activation of NF-kB and MAPK pathways, effectively suppressing osteoclastogenesis and halting excessive bone breakdown.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Xu et al. Mol Med Reports. 2016;14:4767</span>
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Tang et al. Chin Med. 2020;15:87</span>
+        </div>
+      </div>
+      <div class="card card-hover reveal" style="padding:2rem;border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.04);">
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
+          <div>
+            <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#a78bfa;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.2rem;">03 &nbsp; Cell Survival and Oxidative Protection</div>
+            <h4 style="font-size:1.15rem;font-weight:900;color:var(--fg);">PI3K/Akt Pathway and Antioxidant Defense</h4>
+          </div>
+          <div style="width:.6rem;height:.6rem;border-radius:50%;background:#a78bfa;flex-shrink:0;margin-top:.2rem;"></div>
+        </div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;margin-bottom:.75rem;">FLL activates PI3K/Akt signaling, promoting osteoblast survival and proliferation. It also engages the Nrf2/HO-1 antioxidant axis to protect bone-forming cells from oxidative stress and apoptosis, ensuring cells remain healthy during heavy mechanical loading.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Li et al. Aging (Albany NY). 2019;11:9348</span>
+        </div>
+      </div>
+      <div class="card card-hover reveal" style="padding:2rem;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.04);">
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
+          <div>
+            <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#34d399;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.2rem;">04 &nbsp; Mineralization Environment</div>
+            <h4 style="font-size:1.15rem;font-weight:900;color:var(--fg);">Calcium Homeostasis (TRPV6/VDR)</h4>
+          </div>
+          <div style="width:.6rem;height:.6rem;border-radius:50%;background:#34d399;flex-shrink:0;margin-top:.2rem;"></div>
+        </div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;margin-bottom:.75rem;">FLL compounds modulate the parathyroid hormone (PTH) and Vitamin D receptor (VDR) networks. This upregulates TRPV6 to dramatically increase intestinal and cellular calcium absorption, ensuring raw materials for bone mineralization are available when the jaw is strained.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Chen et al. J Ethnopharmacol. 2021;279:114348</span>
+        </div>
+      </div>
+      <div class="card card-hover reveal" style="padding:2rem;border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.04);">
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
+          <div>
+            <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:var(--primary);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.2rem;">05 &nbsp; Natural Anabolic Support</div>
+            <h4 style="font-size:1.15rem;font-weight:900;color:var(--fg);">Ursolic Acid, Oleanolic Acid, Salidroside</h4>
+          </div>
+          <div style="width:.6rem;height:.6rem;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:.2rem;"></div>
+        </div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;margin-bottom:.75rem;">Osstivia contains compounds native to FLL, including Ursolic Acid, Oleanolic Acid, and Salidroside. These botanical components function as natural anabolics with promising evidence for supporting muscle health and function via IGF-1/PI3K/mTORC1 signaling.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Wal et al. Russ J Bioorg Chem. 2025;51:1</span>
+          <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Feng et al. Front Immunol. 2025;16</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ACTIVE COMPOUNDS -->
+<section id="compounds" style="padding:7rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:4rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Phytochemistry</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">ACTIVE COMPOUNDS</h2>
+      <p class="section-sub">Fructus Ligustri Lucidi contains a rich array of bioactive triterpenes, iridoids, and phenylpropanoids. Osstivia standardizes these to HPLC-verified concentrations.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;">
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(245,166,35,.25);">
+        <div style="font-size:1.2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">Oleanolic Acid</div>
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:.75rem;letter-spacing:.08em;">15-20% by HPLC</div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Hepatoprotective, inhibits PPARgamma to suppress BMSC adipogenesis in favor of osteoblastic differentiation. Activates Nrf2/ARE cytoprotection.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(245,166,35,.25);animation-delay:.07s;">
+        <div style="font-size:1.2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">Ursolic Acid</div>
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:.75rem;letter-spacing:.08em;">Natural Triterpene</div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Activates BMP/Smad signaling in BMSCs, suppresses NF-kB and pro-inflammatory cytokines, reprograms macrophages from M1 to M2 phenotype.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(245,166,35,.25);animation-delay:.14s;">
+        <div style="font-size:1.2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">Salidroside</div>
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:.75rem;letter-spacing:.08em;">Elite Adaptogen</div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Activates AMPK/Sirt1/PGC-1alpha for mitochondrial resilience, blocks Abeta aggregation, modulates HPA axis to reduce cortisol-mediated bone loss.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(245,166,35,.25);animation-delay:.21s;">
+        <div style="font-size:1.2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">Oleuropein / Echinacoside</div>
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:.75rem;letter-spacing:.08em;">Iridoid Glycosides</div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Potent antioxidants and anti-inflammatory agents that complement the triterpene fraction. Echinacoside promotes osteoblast proliferation and ALP activity.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(245,166,35,.25);animation-delay:.28s;">
+        <div style="font-size:1.2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">Nuzhenide</div>
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:.75rem;letter-spacing:.08em;">Secoiridoid Glycoside</div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Regulates gut microbiota diversity and increases SCFA production. Supports systemic calcium balance via PTH/VDR axis modulation.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(245,166,35,.25);animation-delay:.35s;">
+        <div style="font-size:1.2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">Specnuezhenide</div>
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:.75rem;letter-spacing:.08em;">Secoiridoid Glycoside</div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Modulates SIRT6 expression, linked to NAD-dependent anti-aging pathways and NF-kB suppression in bone tissue.</p>
+      </div>
+    </div>
+    <!-- Frontiers reference image -->
+    <div class="reveal" style="margin-top:2rem;display:flex;justify-content:center;">
+      <div class="gallery-item" style="max-width:480px;width:100%;" onclick="openLightbox(this.querySelector('img').src)">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/https___www.frontiersin.org_files_Articles_1330732_xml-images_fphar-15-1330732-g001_1.webp?v=1783411025" alt="FLL phytochemistry overview" loading="lazy">
+        <div class="gallery-caption">Frontiers in Pharmacology 2024: FLL phytochemistry, pharmacology, and bioavailability overview diagram</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE SCIENCE -->
+<section id="science" style="padding:7rem 1.5rem;background:var(--bg);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:2.5rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Empirical Data</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">THE RESEARCH</h2>
+      <p class="section-sub">Fructus Ligustri Lucidi is one of the most rigorously studied botanicals for bone metabolism. The data demonstrates clear modulation of both osteoblastic formation and osteoclastic resorption, alongside a newly identified Sirt6-dependent pathway directly linking FLL to NF-kB suppression and osteoclast inhibition.</p>
+    </div>
+    <!-- GO:0071363 callout -->
+    <div class="card reveal" style="padding:2rem;border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.05);margin-bottom:2rem;">
+      <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;">
+        <span style="padding:.25rem .75rem;border-radius:9999px;font-size:.65rem;font-family:'Space Mono',monospace;font-weight:700;color:var(--primary);background:rgba(245,166,35,.15);flex-shrink:0;">GO:0071363</span>
+        <h4 style="font-size:1rem;font-weight:800;color:var(--fg);">Cellular Response to Growth Factor Stimulus</h4>
+      </div>
+      <p style="font-size:.8rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;">GO enrichment analysis of FLL identifies "cellular response to growth factor stimulus" as one of the most significantly upregulated biological processes. This is mechanistically critical: hard chewing generates mechanical strain, which triggers local IGF-1/TGF-beta release at the condyle. FLL-treated cells are measurably more sensitive to these growth factor signals, meaning every chewing session produces a greater anabolic response.</p>
+    </div>
+    <!-- Sirt6 callout -->
+    <div class="card reveal" style="padding:2rem;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.05);margin-bottom:3rem;">
+      <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;">
+        <span style="padding:.25rem .75rem;border-radius:9999px;font-size:.65rem;font-family:'Space Mono',monospace;font-weight:700;color:var(--accent);background:rgba(249,115,22,.15);flex-shrink:0;">NEW MECHANISM</span>
+        <h4 style="font-size:1rem;font-weight:800;color:var(--fg);">FLL, Sirt6, NF-kB, Cathepsin K Axis</h4>
+      </div>
+      <p style="font-size:.8rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;">Recent research establishes a novel mechanistic cascade: FLL bioactives upregulate Sirt6 (a NAD-dependent deacetylase) in osteoblasts. Sirt6 then deacetylates and inactivates NF-kB p65, reducing transcription of Cathepsin K, the primary collagenase responsible for bone matrix degradation by osteoclasts. This Sirt6-mediated brake on osteoclastogenesis is independent of the classical RANKL/OPG pathway, giving FLL a dual-axis anti-resorption mechanism.</p>
+    </div>
+    <!-- Evidence claims -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.75rem;margin-bottom:3.5rem;">
+      <div class="reveal" style="display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border-radius:.5rem;background:var(--card);border:1px solid var(--border);">
+        <div style="width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.3rem;"></div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--fg);">Suppresses RANKL-induced osteoclastogenesis via NFATc1 inhibition</p>
+      </div>
+      <div class="reveal" style="display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border-radius:.5rem;background:var(--card);border:1px solid var(--border);animation-delay:.06s;">
+        <div style="width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.3rem;"></div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--fg);">Activates Wnt/beta-catenin via DKK1/SOST inhibition, osteoblast formation</p>
+      </div>
+      <div class="reveal" style="display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border-radius:.5rem;background:var(--card);border:1px solid var(--border);animation-delay:.12s;">
+        <div style="width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.3rem;"></div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--fg);">Increased BMD in dose-dependent manner (high-dose: 0.32 g/cm2 vs control 0.26)</p>
+      </div>
+      <div class="reveal" style="display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border-radius:.5rem;background:var(--card);border:1px solid var(--border);animation-delay:.18s;">
+        <div style="width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.3rem;"></div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--fg);">Significantly increased Ca absorption and retention rates (p less than 0.01)</p>
+      </div>
+      <div class="reveal" style="display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border-radius:.5rem;background:var(--card);border:1px solid var(--border);animation-delay:.24s;">
+        <div style="width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.3rem;"></div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--fg);">Increased epiphyseal growth plate cartilage thickness by 24% to 32%</p>
+      </div>
+      <div class="reveal" style="display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border-radius:.5rem;background:var(--card);border:1px solid var(--border);animation-delay:.30s;">
+        <div style="width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.3rem;"></div>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--fg);">GO:0071363 enrichment: sensitizes cells to growth factor stimulus (IGF-1, TGF-beta)</p>
+      </div>
+    </div>
+    <!-- Science image gallery -->
+    <div class="gallery-grid">
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_2.png?v=1783411025" alt="FLL mechanism overview" loading="lazy">
+        <div class="gallery-caption">FLL multi-pathway mechanism: three convergent axes — (1) PTH/CaSR/VDR calcium regulation, (2) ERα/RANKL/OPG/MAPK/Akt osteoclast suppression, (3) Nox4/ROS/NF-κB antioxidant control — inhibiting osteoclastogenesis and promoting osteoblastogenesis</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.05s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_3.png?v=1783411025" alt="Anti-osteoporosis pathway" loading="lazy">
+        <div class="gallery-caption">FLL bioactive compound library: 14 pharmacologically active molecules — triterpenoids (oleanolic acid, ursolic acid), iridoid glycosides (nuzhenide through oleoside esters), phenylethanoid glycoside (salidroside), and phenols (hydroxytyrosol, tyrosol, tyrosyl acetate)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.10s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_4.png?v=1783411025" alt="PTH/CaSR/ERa pathway" loading="lazy">
+        <div class="gallery-caption">Morris water maze: FLL restores spatial memory and learning in aging mice — significantly more platform crossings, greater target zone dwell time, and reduced escape latency vs. aging controls (swim paths and bar charts, Normal/Aging/VE/FLL groups)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.15s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_5.png?v=1783411025" alt="microCT bone imaging" loading="lazy">
+        <div class="gallery-caption">FLL articular cartilage protection: H&amp;E (10×) and Safranin-O/glycosaminoglycan staining (10× &amp; 20×) showing FLL preserves cartilage proteoglycan matrix in aging — IOD values quantified across Normal/Aging/VE/FLL groups</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.20s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_6.png?v=1783411025" alt="Calcium absorption rates" loading="lazy">
+        <div class="gallery-caption">FLL suppresses NF-κB p65 acetylation and Cathepsin K in aging bone: IHC (20×/40×) and western blot showing FLL reduces Acetyl-NF-κB-p65 (Lys310) and Cathepsin K protein in osteoclast-rich bone tissue (Normal/Aging/Aging+FLL)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.25s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_7.png?v=1783411025" alt="FLL 3D microCT bone reconstruction" loading="lazy">
+        <div class="gallery-caption">FLL 3D microCT and biomechanics: 3D bone reconstruction with dose-dependent improvements in trabecular parameters (BV/TV, Tb.N, Tb.Sp, Tb.Th) and cortical metrics (Ct.Ar, Ct.Th), plus whole-bone mechanical strength (ultimate load, bending strength, elastic modulus)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.30s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_8.png?v=1783411026" alt="FLL bone immunohistochemistry" loading="lazy">
+        <div class="gallery-caption">FLL upregulates Sirt6 in brain neurons and bone tissue: DAB immunostaining in hippocampal neurons (top panels) and osteoblasts (bottom panels), confirmed by western blot; FLL also restores serum IL-2 and reduces TNF-α in aging (Normal/Aging/Aging+FLL)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.35s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_9.png?v=1783411025" alt="FLL neuroprotection pathway" loading="lazy">
+        <div class="gallery-caption">FLL dual mechanism pathway diagram: D-gal+NaNO2 induces gut flora dysbiosis → FMO3 → TMAO → oxidative stress; FLL blocks this via Sirt6 upregulation → NF-κB-p65 suppression → Cathepsin K reduction, protecting both bone (↓senile osteoporosis) and brain (↓cognitive deficit)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.40s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_10.png?v=1783411026" alt="FLL comprehensive mechanistic network" loading="lazy">
+        <div class="gallery-caption">Ursolic acid (FLL triterpenoid) macrophage mechanism: inhibits LPS/TLR-4 → M1 macrophage activation, balances M1/M2 polarization, induces autophagy — systemic protection of brain (Alzheimer/depression/ischemia), bone (osteoporosis), blood vessels (atherosclerosis), liver, and skin</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.45s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_11.png?v=1783411026" alt="FLL bone immunostaining panel" loading="lazy">
+        <div class="gallery-caption">Ursolic acid immunological network: macrophage M1/M2 polarization balance (TNF-α/IL-6 → IL-10/TGF-β), LPS/TLR-4/NF-κB/pSTAT1/MAPK suppression, autophagy induction — mechanistic links to osteoporosis (osteoclast MAPK/JNK), Alzheimer/depression, liver fibrosis, atherosclerosis</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.50s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_12.png?v=1783411026" alt="Sirt6 immunostaining" loading="lazy">
+        <div class="gallery-caption">Ursolic acid multi-organ body map: brain (Alzheimer/neuritis via ROS/NF-κB/NLRP3 in microglia), bone (osteoporosis via JNK/MAPK/TLR/NF-κB osteoclast differentiation), blood vessels (atherosclerosis via NOX4/NF-κB), liver (fibrosis via Kupffer/NLRP3 pyroptosis), skin (wound healing)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.55s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_13.png?v=1783411025" alt="FLL pathway cascade" loading="lazy">
+        <div class="gallery-caption">Ursolic acid five-organ radial effects: bone (inhibit osteoclast differentiation), skin (inflammation regulation, wound healing), blood vessels (autophagy promotion, foam cell restriction), brain (neuroinflammatory regulation, neuroprotection), liver (fibrosis regulation, immune surveillance)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.60s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_14.png?v=1783411025" alt="Morris water maze" loading="lazy">
+        <div class="gallery-caption">Ursolic acid broad pharmacological profile: 11 documented bioactivities — antifungal, antimalarial, antihistaminic, cardioprotective, anti-inflammatory, anticancer, antioxidant, antidiabetic, antibacterial, antiproliferative, and chemopreventive</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.65s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_15.png?v=1783411025" alt="GO molecular function" loading="lazy">
+        <div class="gallery-caption">Ligustrum lucidum Fruit (LLF) comprehensive mechanism: four simultaneous actions — bone remodeling balance (inhibit osteoclastogenesis, promote osteoblast activity), calcium homeostasis (CaSR/PTH axis), Nox4/ROS/NF-κB antioxidant suppression, and BMSCs differentiation (inhibit adipogenesis, promote osteogenesis)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.70s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_16.png?v=1783411025" alt="GO cellular component" loading="lazy">
+        <div class="gallery-caption">Ligustrum lucidum multi-system pharmacology: anti-inflammatory (NF-κB/MAPK/HO-1), anti-tumor (casp-3/8/9 apoptosis, PI3K/Akt/MMP2 migration), anti-osteoporosis (NFATc1/ERK osteoclasts + Wnt/β-cat/BMP osteoblasts), hepatoprotection (LXR-α/SREBP/Smad4), antioxidant (NOx4/SOD/GSH-Px), anti-depression (CaSR/TLR4/NLRP3)</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.75s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/image_17.png?v=1783411025" alt="GO biological process" loading="lazy">
+        <div class="gallery-caption">FLL calcium homeostasis mechanism: kidney activation of 1,25(OH)₂D₃ → intestinal TRPV6/CaBP-9K/VDR transporter upregulation, plus gut microbiota short-chain fatty acids (SCFAs) → combined enhanced intestinal Ca²⁺ absorption → net bone calcium deposition</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.80s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/BMRI2015-281873.001.jpg?v=1783411025" alt="FLL triterpene molecular structure" loading="lazy">
+        <div class="gallery-caption">FLL Triterpene Structure: Oleanolic Acid Molecular Formula</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.85s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/BMRI2015-281873.002.jpg?v=1783411025" alt="FLL bioactive saponin and glycoside structures" loading="lazy">
+        <div class="gallery-caption">FLL iridoid glycoside structures: oleoside-type iridoid variants (compounds 1–5), including salidroside-type ester (R = 4-hydroxyphenethyl) and phenylalanine ester variants — key bioactive glycoside scaffolds in Ligustrum lucidum Fruit</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESEARCH SNIPPETS COVERFLOW -->
+<section id="snippets" style="padding:7rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border);overflow:hidden;contain:layout paint;">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:4rem;">
+      <div class="section-label" style="margin-bottom:1rem;color:var(--accent);">FLL Research Library</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">RESEARCH SNIPPETS</h2>
+      <p class="section-sub">Direct excerpts and figures from peer-reviewed studies on Fructus Ligustri Lucidi. Click any card to expand. Use arrows or dots to browse.</p>
+    </div>
+    <!-- Coverflow -->
+    <div class="coverflow-wrap" id="coverflow"></div>
+    <!-- Controls -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:2.5rem;">
+      <button onclick="cfPrev()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:.6rem;border-radius:50%;cursor:pointer;transition:border-color .2s,color .2s;display:flex;align-items:center;" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11,4 6,9 11,14"/></svg>
+      </button>
+      <div id="cf-dots" style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:center;"></div>
+      <button onclick="cfNext()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:.6rem;border-radius:50%;cursor:pointer;transition:border-color .2s,color .2s;display:flex;align-items:center;" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7,4 12,9 7,14"/></svg>
+      </button>
+    </div>
+    <p id="cf-label" style="text-align:center;font-size:.68rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:1rem;"></p>
+  </div>
+</section>
+
+<!-- CLINICAL TRIAL -->
+<section id="clinical" style="padding:7rem 1.5rem;background:var(--bg);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:4rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Human Evidence</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">CLINICAL TRIAL DATA</h2>
+      <p class="section-sub">A clinical trial involving women taking FLL powder documented significant improvements in bone mineral density. This used a basic milk powder delivery method. With SNEDDS, results are expected to be substantially superior.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-bottom:3rem;">
+      <div class="card reveal" style="padding:2rem;border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.06);">
+        <div style="font-size:2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">0.32 g/cm2</div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--fg);margin-bottom:.4rem;">High-Dose Group BMD</div>
+        <div style="font-size:.7rem;font-family:'Space Mono',monospace;color:var(--muted);">vs. control 0.26 g/cm2. Statistically significant (p less than 0.05). Leung et al. 2015</div>
+      </div>
+      <div class="card reveal" style="padding:2rem;border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.06);animation-delay:.08s;">
+        <div style="font-size:2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">Milk Powder</div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--fg);margin-bottom:.4rem;">Delivery Method Used</div>
+        <div style="font-size:.7rem;font-family:'Space Mono',monospace;color:var(--muted);">Basic oral delivery with first-pass metabolism intact. Osstivia SNEDDS bypasses this entirely for greater efficacy.</div>
+      </div>
+      <div class="card reveal" style="padding:2rem;border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.06);animation-delay:.16s;">
+        <div style="font-size:2rem;font-weight:900;color:var(--primary);margin-bottom:.5rem;">p &lt; 0.01</div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--fg);margin-bottom:.4rem;">Calcium Retention Significance</div>
+        <div style="font-size:.7rem;font-family:'Space Mono',monospace;color:var(--muted);">Both Ca absorption rate and Ca retention rate significantly improved (Chen et al. 2021)</div>
+      </div>
+    </div>
+    <!-- Clinical study images -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/FLLClinicalStudy.png?v=1781936649" alt="Clinical Study 1" loading="lazy">
+        <div class="gallery-caption">Leung et al. 2015 clinical conclusion: rich laboratory evidence and positive clinical observations establish FLL as a safe, effective nutritional supplement for bone health — recommended as a perfect choice for bone mineral density maintenance</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.08s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/FLLClinicalStudy2.png?v=1781936649" alt="Clinical Study 2" loading="lazy">
+        <div class="gallery-caption">Leung et al. 2015 clinical trial: &gt;0.5% increase in both hip and spine BMD after 3 months of FLL supplementation — statistically significant vs. control group, zero adverse events, no body weight gain</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.16s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/FLLClinicalStudy3.png?v=1781936649" alt="Clinical Study 3" loading="lazy">
+        <div class="gallery-caption">Biochemical markers: calcium, phosphorus, and bone turnover markers across study groups</div>
+      </div>
+      <div class="gallery-item reveal" onclick="openLightbox(this.querySelector('img').src)" style="animation-delay:.24s;">
+        <img src="https://cdn.shopify.com/s/files/1/0769/4362/2362/files/FLLClinicalStudy4.png?v=1781936649" alt="Clinical Study 4" loading="lazy">
+        <div class="gallery-caption">Clinical trial conclusion: FLL supplementation produces significant improvements in BMD even with basic milk powder delivery</div>
+      </div>
+    </div>
+    <!-- SNEDDS advantage -->
+    <div class="card reveal" style="padding:2rem;margin-top:2rem;border-color:rgba(245,166,35,.25);">
+      <h4 style="font-size:1rem;font-weight:800;color:var(--primary);margin-bottom:1rem;">SNEDDS Advantage vs. Milk Powder Delivery</h4>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:.72rem;">
+          <thead><tr>
+            <th style="text-align:left;padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Property</th>
+            <th style="text-align:center;padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Milk Powder (Trial)</th>
+            <th style="text-align:center;padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--primary);font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Osstivia SNEDDS</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--fg);">Bioavailability</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);text-align:center;">Low (first-pass loss)</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--primary);text-align:center;font-weight:700;">High (lymphatic)</td></tr>
+            <tr><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--fg);">P-gp Efflux</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);text-align:center;">Active efflux intact</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--primary);text-align:center;font-weight:700;">Inhibited</td></tr>
+            <tr><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--fg);">Compound Integrity</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);text-align:center;">Degraded in gut</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--primary);text-align:center;font-weight:700;">Protected</td></tr>
+            <tr><td style="padding:.6rem 1rem;color:var(--fg);">Expected Efficacy</td><td style="padding:.6rem 1rem;color:var(--muted);text-align:center;">Baseline (proven)</td><td style="padding:.6rem 1rem;color:var(--primary);text-align:center;font-weight:700;">Significantly superior</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE MECHANISM -->
+<section id="mechanism" style="padding:7rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:4rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Mandibular Remodeling</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">THE MECHANISM</h2>
+      <p class="section-sub">Mandibular condylar cartilage retains active growth potential into the third and fourth decade of life. Mechanical loading combined with Osstivia creates a synergistic anabolic environment.</p>
+    </div>
+    <!-- Mechanism flow -->
+    <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:3.5rem;">
+      <div class="reveal" style="display:flex;gap:1.5rem;align-items:flex-start;padding:1.75rem;background:var(--bg);border:1px solid var(--border);">
+        <div class="step-num">1</div>
+        <div>
+          <h4 style="font-weight:800;font-size:1rem;margin-bottom:.4rem;">Hard Chewing Initiates Mechanical Strain</h4>
+          <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Mechanical loading repositions the condyle within the articular fossa, loading the condylar fibrocartilage and subchondral bone. This mechanical input triggers local release of IGF-1, TGF-beta, and BMP-2 at the condyle. Without this stimulus, the biological cascade cannot begin.</p>
+        </div>
+      </div>
+      <div class="reveal" style="display:flex;gap:1.5rem;align-items:flex-start;padding:1.75rem;background:var(--bg);border:1px solid var(--border);animation-delay:.1s;">
+        <div class="step-num">2</div>
+        <div>
+          <h4 style="font-weight:800;font-size:1rem;margin-bottom:.4rem;">Osstivia Amplifies the Growth Factor Response</h4>
+          <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">FLL-treated cells are measurably more sensitive to IGF-1 and TGF-beta signals (GO:0071363 enrichment). This is the molecular bridge between the chewing protocol and FLL's biochemical amplification effect. Each session produces a greater anabolic response.</p>
+        </div>
+      </div>
+      <div class="reveal" style="display:flex;gap:1.5rem;align-items:flex-start;padding:1.75rem;background:var(--bg);border:1px solid var(--border);animation-delay:.2s;">
+        <div class="step-num">3</div>
+        <div>
+          <h4 style="font-weight:800;font-size:1rem;margin-bottom:.4rem;">BMP/Smad Drives Hypertrophic Zone Expansion</h4>
+          <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Amplified BMP-2 signaling activates RUNX2 and Osterix in condylar chondrocytes, driving differentiation into hypertrophic chondrocytes. FLL increases hypertrophic zone thickness by 24% to 32% in vivo, directly expanding the active growth front of the mandible.</p>
+        </div>
+      </div>
+      <div class="reveal" style="display:flex;gap:1.5rem;align-items:flex-start;padding:1.75rem;background:var(--bg);border:1px solid var(--border);animation-delay:.3s;">
+        <div class="step-num">4</div>
+        <div>
+          <h4 style="font-weight:800;font-size:1rem;margin-bottom:.4rem;">Endochondral Ossification Converts Cartilage to Bone</h4>
+          <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Hypertrophic chondrocytes mineralize their matrix. Vascular invasion follows. Osteoblasts colonize and deposit new bone. ALP cleaves pyrophosphate to enable hydroxyapatite crystal formation. Wnt/beta-catenin maintains osteoblast commitment throughout the process.</p>
+        </div>
+      </div>
+      <div class="reveal" style="display:flex;gap:1.5rem;align-items:flex-start;padding:1.75rem;background:var(--bg);border:1px solid var(--border);animation-delay:.4s;">
+        <div class="step-num">5</div>
+        <div>
+          <h4 style="font-weight:800;font-size:1rem;margin-bottom:.4rem;">OPG/RANKL Balance Protects New Bone</h4>
+          <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Simultaneously, FLL suppresses RANKL expression and upregulates OPG, preventing osteoclast activation and protecting newly deposited bone matrix from premature resorption. c-Fos/AP-1 and TRAF6/NF-kB suppression ensure the resorptive cascade stays suppressed throughout the remodeling cycle.</p>
+        </div>
+      </div>
+    </div>
+    <!-- Condylar evidence -->
+    <div class="card reveal" style="padding:2rem;border-color:rgba(236,72,153,.3);background:rgba(236,72,153,.05);">
+      <h4 style="font-size:.85rem;font-weight:800;color:#f9a8d4;margin-bottom:.75rem;">Peer-Reviewed Evidence: Adult Condylar Growth Potential</h4>
+      <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;">Lubsen et al. (1987) demonstrated that mandibular condyles in the third decade of life show hypertrophic growth cartilage with active endochondral ossification, with persistence documented into the early fourth decade in males. Kapoor et al. (Seminars in Orthodontics 2025) confirms biomolecular signals for condylar growth including PTHrP/Ihh/Sox9 axis, BMP-2, and Wnt signaling.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1rem;">
+        <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Lubsen et al. 1987: Third/fourth decade condylar ossification</span>
+        <span style="font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);padding:.2rem .6rem;border:1px solid var(--border);border-radius:.25rem;">Kapoor et al. Semin Orthod. 2025</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SYSTEMIC HEALTH -->
+<section id="systemic" style="padding:7rem 1.5rem;background:var(--bg);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:2.5rem;">
+      <div class="section-label" style="margin-bottom:1rem;color:var(--accent);">Whole-Body Benefits</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">BEYOND BONE</h2>
+      <p class="section-sub">While Osstivia is engineered for bone modulation, the highly concentrated FLL extract offers a massive spectrum of whole-body health benefits heavily documented in scientific literature.</p>
+    </div>
+    <!-- Tags -->
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:3rem;">
+      <span class="benefit-tag">Gut Support</span>
+      <span class="benefit-tag">Anti-Aging</span>
+      <span class="benefit-tag">Antioxidant</span>
+      <span class="benefit-tag">Calcium Regulation</span>
+      <span class="benefit-tag">Immune Modulation</span>
+      <span class="benefit-tag">Liver Support</span>
+      <span class="benefit-tag">Adaptogenic</span>
+      <span class="benefit-tag">Neuroprotective</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;">
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.05);">
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#34d399;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem;">GUT SUPPORT</div>
+        <h4 style="font-size:.95rem;font-weight:800;color:var(--fg);margin-bottom:.6rem;">Gut Microbiota and Digestion</h4>
+        <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.65;margin-bottom:.75rem;">FLL positively regulates gut microbiota diversity and significantly increases production of beneficial short-chain fatty acids (SCFAs). Also promotes calcium balance simultaneously (Chen et al. J Ethnopharmacol. 2021;279:114348).</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(250,204,21,.3);background:rgba(250,204,21,.05);animation-delay:.06s;">
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#fde047;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem;">ANTI-AGING, ANTIOXIDANT</div>
+        <h4 style="font-size:.95rem;font-weight:800;color:var(--fg);margin-bottom:.6rem;">Antioxidant and Anti-Aging Defense</h4>
+        <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.65;margin-bottom:.75rem;">Engages Nrf2/HO-1 antioxidant pathways. Modulates Sirt6 and TMAO levels, proteins strongly linked to longevity and protection against cellular aging (Li et al. Aging. 2019;11:9348).</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.05);animation-delay:.12s;">
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#22d3ee;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem;">CALCIUM REGULATION</div>
+        <h4 style="font-size:.95rem;font-weight:800;color:var(--fg);margin-bottom:.6rem;">Systemic Calcium Balance</h4>
+        <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.65;margin-bottom:.75rem;">Studies show significant increases in both Ca absorption rate and Ca retention rate (p less than 0.01) via PTH/VDR/TRPV6 upregulation, ensuring the system has raw building blocks for sustained mineralization.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.05);animation-delay:.18s;">
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#fb923c;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem;">IMMUNE MODULATION, Ursolic Acid</div>
+        <h4 style="font-size:.95rem;font-weight:800;color:var(--fg);margin-bottom:.6rem;">Macrophage and Immune Regulation</h4>
+        <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.65;margin-bottom:.75rem;">Ursolic Acid suppresses pro-inflammatory cytokines (TNF-alpha, IL-1beta, IL-6) via NF-kB/AP-1/STAT3 inhibition and reprograms macrophages from M1 to M2 phenotype (Feng et al. Front Immunol. 2025).</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.05);animation-delay:.24s;">
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#f87171;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem;">LIVER SUPPORT, METABOLIC, Oleanolic Acid</div>
+        <h4 style="font-size:.95rem;font-weight:800;color:var(--fg);margin-bottom:.6rem;">Hepatoprotective and Metabolic Health</h4>
+        <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.65;margin-bottom:.75rem;">Verified by HPLC to contain 15-20% Oleanolic Acid. Acts as a profound liver protectant, reduces ALT/AST, activates Nrf2/ARE cytoprotection, aids metabolic conditioning and lipid metabolism regulation.</p>
+      </div>
+      <div class="card card-hover reveal" style="padding:1.75rem;border-color:rgba(129,140,248,.3);background:rgba(129,140,248,.05);animation-delay:.30s;">
+        <div style="font-size:.6rem;font-family:'Space Mono',monospace;font-weight:700;color:#818cf8;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem;">NEUROPROTECTIVE, ADAPTOGENIC, Salidroside</div>
+        <h4 style="font-size:.95rem;font-weight:800;color:var(--fg);margin-bottom:.6rem;">Neuroprotection and Adaptogenic Shield</h4>
+        <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.65;margin-bottom:.75rem;">Salidroside activates AMPK/Sirt1/PGC-1alpha for mitochondrial resilience, blocks Abeta aggregation, modulates HPA axis to reduce cortisol-mediated bone loss, and supports cognitive vitality.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT USAGE -->
+<section id="usage" style="padding:7rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border);">
+  <div style="max-width:1280px;margin:0 auto;">
+    <div class="reveal" style="max-width:700px;margin-bottom:4rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Protocol Guide</div>
+      <h2 class="section-h" style="color:var(--fg);margin-bottom:1.25rem;">CARE AND USAGE</h2>
+      <p class="section-sub">Osstivia is an advanced liquid formulation. How you take it, store it, and pair it matters. Follow this guide to get the most out of your protocol.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-bottom:3rem;">
+      <!-- How to take -->
+      <div class="card reveal" style="padding:1.75rem;">
+        <h4 style="font-size:1rem;font-weight:800;color:var(--fg);margin-bottom:1.25rem;">How to Take It</h4>
+        <p style="font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;margin-bottom:1.25rem;">Take Osstivia orally via the glass dropper that comes with the bottle. The dropper is marked with precise measurements so you can easily track your daily mL dosage.</p>
+        <div style="padding:1rem;border-radius:.75rem;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);margin-bottom:.75rem;">
+          <div style="font-size:.6rem;font-weight:700;color:#f87171;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem;">Do NOT</div>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:.35rem;">
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#f87171;">x</span> Refrigerate</li>
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#f87171;">x</span> Place near direct sunlight</li>
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#f87171;">x</span> Put in super warm liquids</li>
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#f87171;">x</span> Mix into oil</li>
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#f87171;">x</span> Shake if already diluted</li>
+          </ul>
+        </div>
+        <div style="padding:1rem;border-radius:.75rem;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.22);">
+          <div style="font-size:.6rem;font-weight:700;color:#34d399;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem;">You CAN</div>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:.35rem;">
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#34d399;">v</span> Take by itself or in water</li>
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#34d399;">v</span> Drink other beverages before/after</li>
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#34d399;">v</span> Shake the bottle before use (undiluted)</li>
+            <li style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start;"><span style="color:#34d399;">v</span> Pair with Vitamin D3, K2, and Calcium</li>
+          </ul>
+        </div>
+      </div>
+      <!-- Safety + taste + product images -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card reveal" style="padding:1.75rem;animation-delay:.08s;">
+          <h4 style="font-size:1rem;font-weight:800;color:var(--fg);margin-bottom:.75rem;">Safety and Toxicology</h4>
+          <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">Osstivia has had <strong style="color:var(--fg);">no negative side effects reported at all.</strong> Extensive studies show FLL is remarkably safe and lacks systemic toxicity even in high amounts.</p>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-top:.75rem;">
+            <div style="width:.5rem;height:.5rem;border-radius:50%;background:#34d399;"></div>
+            <span style="font-size:.65rem;font-family:'Space Mono',monospace;color:#34d399;">Zero adverse events in clinical trial (Leung et al. 2015)</span>
+          </div>
+        </div>
+        <div class="card reveal" style="padding:1.75rem;animation-delay:.12s;">
+          <h4 style="font-size:1rem;font-weight:800;color:var(--fg);margin-bottom:.75rem;">Taste Profile</h4>
+          <p style="font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;">This is an advanced formulated product. It does not taste sugary or artificial. Some users are sensitive to the excipients, while others don't mind. It is an acquired taste you will get used to.</p>
+        </div>
+      </div>
+    </div>
+    <!-- Dosing table -->
+    <div class="card reveal" style="overflow:hidden;margin-bottom:2rem;">
+      <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--border);">
+        <h4 style="font-size:1rem;font-weight:800;color:var(--fg);">How Long Will Your Bottle Last?</h4>
+        <p style="font-size:.72rem;font-family:'Space Mono',monospace;color:var(--muted);margin-top:.25rem;">Daily dose vs. bottle size duration guide</p>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="dose-table">
+          <thead><tr>
+            <th>Daily Dose</th>
+            <th style="text-align:center;">30 mL Bottle</th>
+            <th style="text-align:center;color:var(--primary);">60 mL Bottle</th>
+          </tr></thead>
+          <tbody>
+            <tr><td>0.5 mL (Low)</td><td style="text-align:center;color:var(--muted);">2 Months</td><td style="text-align:center;font-weight:700;color:var(--primary);">4 Months</td></tr>
+            <tr><td>1.0 mL</td><td style="text-align:center;color:var(--muted);">1 Month</td><td style="text-align:center;font-weight:700;color:var(--primary);">2 Months</td></tr>
+            <tr><td>1.5 mL</td><td style="text-align:center;color:var(--muted);">20 Days</td><td style="text-align:center;font-weight:700;color:var(--primary);">40 Days</td></tr>
+            <tr><td>2.0 mL (Optimal) <span style="font-size:.6rem;color:var(--primary);font-weight:700;">OPTIMAL</span></td><td style="text-align:center;color:var(--muted);">2 Weeks</td><td style="text-align:center;font-weight:700;color:var(--primary);">1 Month</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:.75rem 2rem;background:rgba(245,166,35,.04);border-top:1px solid var(--border);">
+        <p style="font-size:.68rem;font-family:'Space Mono',monospace;color:var(--muted);">Some users have recently started testing 3-6 mL daily. Follow your dosing guide. 2 mL is optimal if budget allows.</p>
+      </div>
+    </div>
+    <!-- Consistency callout -->
+    <div class="reveal" style="padding:3rem 2rem;border-radius:1.25rem;background:linear-gradient(135deg,rgba(245,166,35,.12),rgba(249,115,22,.05));border:1px solid rgba(245,166,35,.35);text-align:center;">
+      <h4 style="font-size:1.75rem;font-weight:900;color:var(--primary);margin-bottom:1rem;">Consistency Is Key</h4>
+      <p style="font-size:.85rem;font-family:'Space Mono',monospace;color:var(--muted);line-height:1.7;max-width:600px;margin:0 auto 2rem;">Because Osstivia is dose and time-dependent, we highly recommend a pack of 5-6 bottles (60 mL) to maintain a consistent <strong style="color:var(--fg);">1-2 mL daily protocol</strong> alongside your hard chewing. The pathways targeted by FLL require sustained activation, not sporadic dosing, to produce measurable structural change.</p>
+      <a href="https://ossialabs.com/products/osstivia-snedds-legacy?variant=48083874054362" target="_blank" rel="noopener" style="display:inline-block;padding:1rem 2.5rem;background:var(--primary);color:#000;font-weight:900;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--primary)'">GET OSSTIVIA</a>
+    </div>
+  </div>
+</section>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button onclick="closeLightbox()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;z-index:101;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <img id="lightbox-img" src="" alt="Research image" onclick="event.stopPropagation()">
+</div>
+
+<!-- SCRIPTS -->
+<script>
+// ─── Constants ─────────────────────────────────────────────────────────────
+const GOLD  = '#f5a623';
+const AMBER = '#f97316';
+const S     = 'https://cdn.shopify.com/s/files/1/0769/4362/2362/files/';
+
+// ─── Nav scroll effect ──────────────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('nav');
+  if (window.scrollY > 60) nav.classList.add('nav-scrolled');
+  else nav.classList.remove('nav-scrolled');
+  if (window.scrollY > 10 && document.getElementById('mobile-drawer').classList.contains('open')) {
+    document.getElementById('mobile-drawer').classList.remove('open');
+  }
+});
+
+// ─── Responsive nav ─────────────────────────────────────────────────────────
+function checkNav() {
+  const hamBtn   = document.getElementById('ham-btn');
+  const desktopN = document.getElementById('desktop-nav');
+  if (window.innerWidth < 1024) {
+    hamBtn.style.display   = 'flex';
+    desktopN.style.display = 'none';
+  } else {
+    hamBtn.style.display   = 'none';
+    desktopN.style.display = 'flex';
+  }
+}
+checkNav();
+window.addEventListener('resize', checkNav);
+
+// ─── Reveal on scroll ───────────────────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ─── Lightbox ───────────────────────────────────────────────────────────────
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ─── Force Graph ────────────────────────────────────────────────────────────
+(function initGraph() {
+  const isMob = window.innerWidth < 768;
+  const wrap   = document.getElementById('graph-wrap');
+  const canvas = document.getElementById('graph-canvas');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = wrap.clientWidth;
+    canvas.height = wrap.clientHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const CAT_COLORS = {
+    1: '#ef4444', 2: '#3b82f6', 3: '#10b981',
+    4: '#8b5cf6', 5: '#ec4899', 6: AMBER,
+  };
+  const CATEGORIES = [
+    {id:1,name:'Resorption'}, {id:2,name:'Formation'}, {id:3,name:'Mineral'},
+    {id:4,name:'Signaling'}, {id:5,name:'Mandible'}, {id:6,name:'SNEDDS'},
+  ];
+
+  const rawNodes = [
+    {id:'Center',     name:'FLL / Osstivia', group:0,  val:45},
+    {id:'Formation',  name:'Bone Formation', group:2,  val:22},
+    {id:'Resorption', name:'Bone Resorption',group:1,  val:22},
+    {id:'Mineral',    name:'Mineralization', group:3,  val:22},
+    {id:'Mandible',   name:'Mandible Growth',group:5,  val:22},
+    {id:'SNEDDS',     name:'SNEDDS Delivery',group:6,  val:18},
+    {id:'RANKL/RANK', name:'RANKL / RANK',   group:1,  val:10},
+    {id:'NFATc1',     name:'NFATc1',         group:1,  val:8},
+    {id:'c-Fos',      name:'c-Fos / AP-1',   group:1,  val:7},
+    {id:'TRAF6/NF-kB',name:'TRAF6 / NF-kB', group:1,  val:7},
+    {id:'OPG/RANKL',  name:'OPG / RANKL',    group:1,  val:8},
+    {id:'Cathepsin K',name:'Cathepsin K',    group:1,  val:6},
+    {id:'Wnt/b-cat',  name:'Wnt/b-catenin',  group:2,  val:9},
+    {id:'RUNX2',      name:'RUNX2 / Osx',    group:2,  val:9},
+    {id:'BMP/Smad',   name:'BMP-2 / Smad',   group:2,  val:8},
+    {id:'PI3K/Akt',   name:'PI3K / Akt',     group:2,  val:8},
+    {id:'ALP',        name:'ALP',            group:3,  val:7},
+    {id:'PTH/VDR',    name:'PTH / VDR',      group:3,  val:8},
+    {id:'CaSR',       name:'CaSR / TRPV6',   group:3,  val:6},
+    {id:'Nox4/ROS',   name:'Nox4 / ROS',     group:4,  val:7},
+    {id:'Sirt6',      name:'Sirt6',          group:4,  val:7},
+    {id:'MAPK/Akt',   name:'MAPK',           group:4,  val:7},
+    {id:'GO:0071363', name:'GO:0071363',     group:5,  val:8},
+    {id:'Hard Chewing',name:'Hard Chewing',  group:5,  val:9},
+    {id:'Condylar C.',name:'Condylar Cart.', group:5,  val:9},
+    {id:'Endo Oss.',  name:'Endochondral O.',group:5,  val:8},
+    {id:'Hyp. Zone',  name:'Hypertrophic Z.',group:5,  val:7},
+    {id:'Lymphatic',  name:'Lymphatic Bypass',group:6, val:7},
+    {id:'P-gp',       name:'P-gp Inhibition',group:6, val:6},
+    {id:'Bioavail.',  name:'Bioavailability',group:6,  val:7},
+  ];
+
+  const rawLinks = [
+    {s:'Center',     t:'Formation',   v:5}, {s:'Center',    t:'Resorption', v:5},
+    {s:'Center',     t:'Mineral',     v:5}, {s:'Center',    t:'Mandible',   v:5},
+    {s:'Center',     t:'SNEDDS',      v:5},
+    {s:'Resorption', t:'RANKL/RANK',  v:3}, {s:'RANKL/RANK',t:'NFATc1',    v:3},
+    {s:'RANKL/RANK', t:'TRAF6/NF-kB', v:3}, {s:'TRAF6/NF-kB',t:'c-Fos',   v:3},
+    {s:'NFATc1',     t:'c-Fos',       v:3}, {s:'Resorption',t:'OPG/RANKL', v:3},
+    {s:'OPG/RANKL',  t:'Cathepsin K', v:2}, {s:'Sirt6',     t:'TRAF6/NF-kB',v:2},
+    {s:'Formation',  t:'Wnt/b-cat',   v:3}, {s:'Wnt/b-cat', t:'RUNX2',     v:3},
+    {s:'Formation',  t:'BMP/Smad',    v:3}, {s:'BMP/Smad',  t:'RUNX2',     v:3},
+    {s:'Formation',  t:'PI3K/Akt',    v:3}, {s:'PI3K/Akt',  t:'RUNX2',     v:2},
+    {s:'Mineral',    t:'ALP',         v:3}, {s:'Mineral',   t:'PTH/VDR',   v:3},
+    {s:'PTH/VDR',    t:'CaSR',        v:2}, {s:'Mandible',  t:'Hard Chewing',v:3},
+    {s:'Hard Chewing',t:'GO:0071363', v:3}, {s:'GO:0071363',t:'Condylar C.',v:3},
+    {s:'Condylar C.',t:'Endo Oss.',   v:3}, {s:'Endo Oss.', t:'Hyp. Zone', v:2},
+    {s:'Hyp. Zone',  t:'RUNX2',       v:2}, {s:'Nox4/ROS',  t:'TRAF6/NF-kB',v:2},
+    {s:'Sirt6',      t:'Nox4/ROS',    v:2}, {s:'SNEDDS',    t:'Lymphatic',  v:3},
+    {s:'SNEDDS',     t:'P-gp',        v:3}, {s:'Lymphatic', t:'Bioavail.',  v:3},
+    {s:'Bioavail.',  t:'Center',       v:2}, {s:'Center',    t:'Sirt6',      v:2},
+    {s:'BMP/Smad',   t:'Hyp. Zone',   v:2}, {s:'MAPK/Akt',  t:'NFATc1',     v:2},
+  ];
+
+  let activeCategories = new Set([1,2,3,4,5,6]);
+
+  function getNodes() {
+    return rawNodes.filter(n => n.group === 0 || activeCategories.has(n.group));
+  }
+  function getLinks(nodeSet) {
+    return rawLinks.filter(l => nodeSet.has(l.s) && nodeSet.has(l.t))
+      .map(l => ({source: l.s, target: l.t, value: l.v}));
+  }
+
+  const nodeDesc = {
+    'RANKL/RANK':  'RANKL (Receptor Activator of NF-kB Ligand) is expressed by osteoblasts/stromal cells and binds RANK on osteoclast precursors. This interaction is the central trigger for osteoclast differentiation and activation. FLL ethanol extract significantly suppresses RANKL expression and the RANKL/OPG ratio in vitro (Xu et al. Mol Med Reports. 2016;14:4767). Overlap grade: STRONG, as RANKL/RANK signaling is elevated in mechanically loaded TMJ joints, and its suppression by FLL directly reduces condylar bone resorption.',
+    'NFATc1':      'NFATc1 is the master transcription factor for osteoclast differentiation. Downstream of RANKL/RANK, NFATc1 auto-amplification drives a full osteoclastogenic program. FLL suppresses NFATc1 expression in RAW264.7 cells. GO enrichment confirms regulation of I-kappaB kinase/NF-kappaB (GO:0043122) as enriched. Overlap grade: STRONG.',
+    'c-Fos':       'c-Fos is the founding member of the AP-1 transcription factor family and obligate upstream activator of NFATc1. Without c-Fos, NFATc1 auto-amplification halts and osteoclastogenesis cannot proceed. FLL ethanol extract suppresses RANKL-induced c-Fos expression in RAW264.7 cells (Xu et al. 2016). AP-1 complexes also drive pro-inflammatory cytokines IL-1beta, IL-6, and TNF-alpha in TMJ synovial tissue. Overlap grade: STRONG.',
+    'TRAF6/NF-kB': 'TRAF6 bridges RANK activation to downstream NF-kB and MAPK signaling. Upon RANKL binding, TRAF6 polyubiquitination activates IKK, phosphorylates IkBa, and enables NF-kB p65 nuclear translocation. NF-kB then drives NFATc1, Cathepsin K, IL-6. FLL suppresses TRAF6 expression in RAW264.7 cells (Xu et al. 2016). Sirt6 upregulation by FLL provides second-order NF-kB suppression via p65 deacetylation. Overlap grade: STRONG.',
+    'OPG/RANKL':   'OPG (Osteoprotegerin) is a decoy receptor that competes with RANK for RANKL binding, inhibiting osteoclastogenesis. FLL significantly upregulates OPG/RANKL ratio in bone tissue. Higher OPG shifts the balance decisively toward bone formation.',
+    'Cathepsin K':  'Cathepsin K is the primary protease secreted by osteoclasts to digest type I collagen. FLL ethanol extract suppressed MMP-9 in RANKL-induced osteoclastogenesis. Sirt6 upregulation by FLL reduces NF-kB-driven Cathepsin K transcription, providing dual suppression.',
+    'Wnt/b-cat':   'Wnt/beta-catenin signaling is the primary anabolic pathway for bone formation. FLL bioactives downregulate DKK1 and SOST (Wnt inhibitors), allowing LRP5/6 receptor activation, beta-catenin nuclear translocation, and RUNX2/Osx transcription. Overlap grade: STRONG.',
+    'RUNX2':       'RUNX2 (Runt-related transcription factor 2) is the master transcription factor for osteoblast differentiation. Required for osteoblast commitment from mesenchymal stem cells. FLL promotes BMSC osteogenic differentiation with increased RUNX2 expression. GO enrichment directly confirms: regulation of osteoblast differentiation (GO:0045667).',
+    'BMP/Smad':    'BMP-2 and BMP-7 signal via Smad1/5/8 to drive osteoblast and chondrocyte commitment. Mechanical loading of the condyle releases BMP-2 locally. FLL bioactives (ursolic acid) activate BMP/Smad in BMSCs. Overlap grade: STRONG, as BMP/Smad is critical to hypertrophic zone expansion at the condyle.',
+    'PI3K/Akt':    'PI3K/Akt is the intracellular survival and differentiation pathway. Network pharmacology and in vitro validation link FLL-mediated BMSC osteogenesis to AKT1 activation. Downstream: RUNX2 upregulation and osteogenic differentiation. Overlap grade: PARTIAL.',
+    'ALP':         'ALP is a key marker and enzyme for bone matrix mineralization. FLL treatment accelerated formation of calcified matrix and increased extracellular Ca and P depositions in time- and dose-dependent manner.',
+    'PTH/VDR':     'FLL upregulates renal 1alpha-hydroxylase (converts 25-OH-D3 to active 1,25(OH)2D3), VDR, calcium transporter calbindin-D9k, and TRPV6 in duodenum. This increases both Ca absorption rate and Ca retention rate significantly (p less than 0.01).',
+    'CaSR':        'The Calcium-Sensing Receptor detects extracellular Ca concentration and modulates PTH secretion. FLL regulates the PTH/CaSR/ERa axis, contributing to improved calcium homeostasis.',
+    'Sirt6':       'Sirt6 is a NAD-dependent protein deacetylase linked to longevity and NF-kB suppression. FLL upregulates Sirt6 in osteoblasts and reduces it in osteoclasts. Sirt6 deacetylates NF-kB p65, reducing transcription of Cathepsin K. Also modulates TMAO, strongly linked to aging (Li et al. Aging. 2019;11:9348).',
+    'Nox4/ROS':    'Nox4 generates reactive oxygen species (ROS) which activate NF-kB. FLL aqueous extract regulates Nox4/ROS/NF-kB in bone metabolism. In the TMJ, NF-kB, oxidative stress, and MMP activity drive degeneration.',
+    'GO:0071363':  'Gene Ontology term: cellular response to growth factor stimulus (GO:0071363). FLL GO enrichment identifies this as one of the top enriched biological processes. Hard chewing releases IGF-1 and TGF-beta at the condyle. FLL-treated cells are measurably more sensitive to these signals, amplifying the anabolic cascade per mechanical stimulus. This is the molecular bridge between the chewing protocol and FLL.',
+    'Hard Chewing':'Mechanical strain from hard chewing repositions the condyle within the articular fossa, loading the condylar fibrocartilage and subchondral bone. This mechanical input triggers local growth factor release (IGF-1, TGF-beta, BMP-2) initiating the remodeling cascade. FLL-treated cells respond more strongly to the same mechanical input via GO:0071363 sensitization.',
+    'Condylar C.': 'The mandibular condyle is the primary growth site of the mandible. Its hypertrophic fibrocartilage retains active growth potential well into the third and fourth decade of life (Lubsen et al. 1987). Mechanical strain from hard chewing activates condylar chondroblasts and triggers endochondral ossification.',
+    'Hyp. Zone':   'The hypertrophic zone of the condylar cartilage is where chondrocytes enlarge, mineralize their matrix, and initiate the transition to bone. It is the active growth front of the mandible. FLL increases hypertrophic zone thickness by 24-32% in vivo, directly expanding the growth front.',
+    'SNEDDS':      'Self Nano-Emulsifying Dietary Delivery System, Osstivia pharmaceutical delivery architecture. Upon GI contact, spontaneously forms lipid nano-droplets under 200 nm that dramatically increase surface area for intestinal absorption. The lipid phase solubilizes hydrophobic triterpenes (ursolic acid, oleanolic acid). Upstream of all FLL mechanisms.',
+    'Lymphatic':   'SNEDDS nano-droplets are packaged into chylomicrons and absorbed via intestinal lacteals into the lymphatic system, bypassing the portal vein entirely. This circumvents hepatic first-pass metabolism, the primary bottleneck for oral bioavailability of lipophilic botanical compounds.',
+    'P-gp':        'P-glycoprotein (P-gp, MDR1/ABCB1) is an efflux transporter on intestinal enterocytes that actively pumps lipophilic compounds back into the gut lumen. SNEDDS surfactant components (polysorbates, Cremophor EL) inhibit P-gp, ensuring maximum intestinal permeation of FLL active compounds.',
+    'Bioavail.':   'Net result of SNEDDS delivery: significantly enhanced systemic bioavailability of ursolic acid, oleanolic acid, and salidroside. Higher plasma concentrations lead to greater receptor occupancy and stronger downstream effects at every pathway node.',
+  };
+
+  // Build D3 simulation
+  let nodes = getNodes().map(n => ({...n}));
+  let links = getLinks(new Set(nodes.map(n => n.id)));
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(d => {
+      if (d.source.group === 0 || d.target.group === 0) return 65;
+      return 42;
+    }).strength(0.7))
+    .force('charge', d3.forceManyBody().strength(d => d.val >= 20 ? -160 : -70))
+    .force('center', d3.forceCenter(canvas.width / 2, canvas.height / 2))
+    .force('collision', d3.forceCollide().radius(d => Math.sqrt(d.val) * 3.5))
+    .alphaDecay(0.015)
+    .velocityDecay(0.28);
+
+  let transform = d3.zoomIdentity;
+  let hoveredNode = null;
+  let activeNode  = null;
+
+  // Canvas zoom (desktop only)
+  if (!isMob) {
+    const zoom = d3.zoom()
+      .scaleExtent([0.3, 4])
+      .on('zoom', (event) => { transform = event.transform; draw(); });
+    d3.select(canvas).call(zoom);
+    // Prevent scroll zoom, only zoom with Ctrl
+    wrap.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey && !e.metaKey) e.stopImmediatePropagation();
+    }, { capture: true });
+  }
+
+  function nodeRadius(n) { return Math.sqrt(n.val) * 2.2; }
+  function nodeColor(n) { return n.group === 0 ? GOLD : (CAT_COLORS[n.group] || '#888'); }
+
+  function draw() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.translate(transform.x, transform.y);
+    ctx.scale(transform.k, transform.k);
+
+    // Draw links
+    links.forEach(link => {
+      if (!link.source.x) return;
+      const col = nodeColor(typeof link.target === 'object' ? link.target : nodes.find(n => n.id === link.target));
+      ctx.beginPath();
+      ctx.moveTo(link.source.x, link.source.y);
+      ctx.lineTo(link.target.x, link.target.y);
+      ctx.strokeStyle = link.value >= 5 ? col + 'cc' : link.value >= 3 ? col + '66' : col + '33';
+      ctx.lineWidth   = link.value >= 5 ? 2 : link.value >= 3 ? 1.2 : 0.7;
+      ctx.stroke();
+    });
+
+    // Draw nodes
+    nodes.forEach(node => {
+      if (!node.x) return;
+      const r   = nodeRadius(node);
+      const col = nodeColor(node);
+      const isCenter  = node.id === 'Center';
+      const isHovered = hoveredNode === node;
+      const isActive  = activeNode === node;
+      const isHub     = node.val >= 20 && !isCenter;
+
+      // Glow ring
+      if (isHovered || isActive) {
+        const glow = ctx.createRadialGradient(node.x, node.y, r, node.x, node.y, r * 2.8);
+        glow.addColorStop(0, col + '40');
+        glow.addColorStop(1, col + '00');
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r * 2.8, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+      }
+
+      // Node fill
+      const grad = ctx.createRadialGradient(node.x - r * 0.3, node.y - r * 0.3, 0, node.x, node.y, r);
+      if (isCenter) {
+        grad.addColorStop(0, '#fff8e1');
+        grad.addColorStop(1, GOLD);
+      } else if (isHub) {
+        grad.addColorStop(0, col + 'ee');
+        grad.addColorStop(1, col + '88');
+      } else {
+        grad.addColorStop(0, col + 'dd');
+        grad.addColorStop(1, col + '66');
+      }
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Ring
+      if (isCenter || isHub) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r + 3, 0, Math.PI * 2);
+        ctx.strokeStyle = col + (isCenter ? 'ff' : '88');
+        ctx.lineWidth   = isCenter ? 2.5 : 1.5;
+        ctx.stroke();
+      }
+
+      // Label
+      const fontSize = Math.max(8, Math.min(12, r * 0.85));
+      ctx.font = `${isCenter ? 'bold ' : ''}${fontSize}px 'Space Grotesk', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const label = node.name;
+      const tw    = ctx.measureText(label).width + 8;
+      const th    = fontSize + 5;
+      // White pill background
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.beginPath();
+      ctx.roundRect(node.x - tw / 2, node.y - th / 2, tw, th, 4);
+      ctx.fill();
+      ctx.fillStyle = isCenter ? '#000' : col;
+      ctx.fillText(label, node.x, node.y);
+    });
+
+    ctx.restore();
+  }
+
+  sim.on('tick', draw);
+
+  // Hover detection
+  canvas.addEventListener('mousemove', (e) => {
+    if (isMob) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx   = (e.clientX - rect.left - transform.x) / transform.k;
+    const my   = (e.clientY - rect.top  - transform.y) / transform.k;
+    hoveredNode = null;
+    for (const n of nodes) {
+      if (!n.x) continue;
+      const dx = n.x - mx, dy = n.y - my;
+      if (Math.sqrt(dx * dx + dy * dy) < nodeRadius(n) + 4) { hoveredNode = n; break; }
+    }
+    canvas.style.cursor = hoveredNode ? 'pointer' : 'crosshair';
+    draw();
+  });
+
+  // Click
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx   = (e.clientX - rect.left - transform.x) / transform.k;
+    const my   = (e.clientY - rect.top  - transform.y) / transform.k;
+    for (const n of nodes) {
+      if (!n.x) continue;
+      const dx = n.x - mx, dy = n.y - my;
+      if (Math.sqrt(dx * dx + dy * dy) < nodeRadius(n) + 6) {
+        if (n.id === 'Center' || n.val >= 20) return;
+        activeNode = n;
+        showPanel(n);
+        draw();
+        return;
+      }
+    }
+  });
+
+  const nodeImages = {
+    'RANKL/RANK':  { src: S + 'image_2.png?v=1783411025',                                    cap: 'FLL multi-pathway suppression: ERα / RANKL / OPG / MAPK osteoclast cascade' },
+    'NFATc1':      { src: S + 'image_9.png?v=1783411025',                                    cap: 'FLL gut→TMAO→Sirt6/NF-κB pathway: NFATc1-driven osteoclastogenesis suppression' },
+    'c-Fos':       { src: S + 'image_11.png?v=1783411026',                                   cap: 'Ursolic acid immunological network: NF-κB/pSTAT1/MAPK suppression including c-Fos/AP-1' },
+    'TRAF6/NF-kB': { src: S + 'image_6.png?v=1783411025',                                    cap: 'FLL suppresses NF-κB p65 and Cathepsin K in aging bone (IHC + western blot)' },
+    'OPG/RANKL':   { src: S + 'image_2.png?v=1783411025',                                    cap: 'FLL shifts OPG/RANKL ratio toward bone formation across multiple mechanisms' },
+    'Cathepsin K':  { src: S + 'image_6.png?v=1783411025',                                   cap: 'FLL reduces Cathepsin K expression in aging bone tissue (IHC 20× + 40× magnification)' },
+    'Wnt/b-cat':   { src: S + 'Screenshot_20251230_155337_Chrome.jpg?v=1783411025',           cap: 'FLL activates Wnt/β-catenin via DKK1 and SOST inhibition — salidroside as primary active ingredient' },
+    'RUNX2':       { src: S + 'image_15.png?v=1783411025',                                   cap: 'LLF comprehensive mechanism: BMSCs osteogenic differentiation with RUNX2 upregulation' },
+    'BMP/Smad':    { src: S + 'image_7.png?v=1783411025',                                    cap: 'FLL 3D microCT + biomechanics: BV/TV, Tb.N, Tb.Sp, Tb.Th, Ct.Ar all improved' },
+    'PI3K/Akt':    { src: S + 'image_16.png?v=1783411025',                                   cap: 'Ligustrum lucidum multi-system pharmacology including PI3K/Akt axis' },
+    'ALP':         { src: S + 'Screenshot_20251230_235137_Chrome.jpg?v=1783411025',           cap: 'FLL accelerates ALP activity and Ca/P matrix deposition in osteoblasts (dose-dependent)' },
+    'PTH/VDR':     { src: S + 'Screenshot_20251230_153122_Chrome.jpg?v=1783411025',           cap: 'Renal 1α-hydroxylase mRNA upregulation by FLL (Vitamin D axis dose-response)' },
+    'CaSR':        { src: S + 'image_17.png?v=1783411025',                                   cap: 'FLL calcium homeostasis: VDR + gut SCFAs → TRPV6/CaBP-9K → enhanced intestinal Ca²⁺ absorption' },
+    'Sirt6':       { src: S + 'image_8.png?v=1783411026',                                    cap: 'FLL upregulates Sirt6 in hippocampal neurons and osteoblasts (DAB IHC + western blot)' },
+    'Nox4/ROS':    { src: S + 'image_9.png?v=1783411025',                                    cap: 'FLL blocks gut dysbiosis → FMO3 → TMAO → Nox4/ROS oxidative stress in bone' },
+    'MAPK/Akt':    { src: S + 'image_10.png?v=1783411026',                                   cap: 'Ursolic acid inhibits LPS/TLR-4 → MAPK cascade in macrophages, reducing downstream NF-κB' },
+    'GO:0071363':  { src: S + 'IMG_0608.jpg?v=1783411025',                                   cap: 'GO enrichment: GO:0071363 cellular response to growth factor stimulus is a top FLL-enriched biological process' },
+    'Hard Chewing':{ src: S + 'Screenshot_20260107_074245_Chrome.jpg?v=1783411025',           cap: 'FLL increases epiphyseal growth plate thickness ~24% in aging mice (Safranin-O/Fast Green histology)' },
+    'Condylar C.': { src: S + 'IMG_9200.jpg?v=1783411025',                                   cap: 'FLL + Exercise: trabecular bone parameters (Tb.Ar, Tb.Sp, Tb.N, Tb.Th) + H&E histology' },
+    'Endo Oss.':   { src: S + 'IMG_9200.jpg?v=1783411025',                                   cap: 'FLL + Exercise: improved bone microstructure in endochondral ossification zones (H&E histology)' },
+    'Hyp. Zone':   { src: S + 'Screenshot_20260107_074245_Chrome.jpg?v=1783411025',           cap: 'Hypertrophic zone: FLL increases cartilage plate thickness ~24% in aging mice (p<0.05)' },
+    'SNEDDS':      { src: S + 'showGraphicalAbstractImage_1ed58f1c-fd8a-4e3f-8380-1535dc82a33a.jpg?v=1781479883', cap: 'Free drug vs SNEDDS: lipid nano-droplets efficiently penetrate intestinal epithelium vs. poor conventional absorption' },
+    'Lymphatic':   { src: S + '1-s2.0-S0378517311001827-fx1.jpg?v=1783411863',               cap: 'SNEDDS nanoparticle structure: oil/water phases + emulsifier shells form nano-droplets for lymphatic uptake' },
+    'P-gp':        { src: S + '1-s2.0-S0378517311001827-fx1.jpg?v=1783411863',               cap: 'SNEDDS architecture: surfactant components inhibit P-gp efflux pump, maximising enterocyte permeation' },
+    'Bioavail.':   { src: S + 'showGraphicalAbstractImage_1ed58f1c-fd8a-4e3f-8380-1535dc82a33a.jpg?v=1781479883', cap: 'SNEDDS vs free drug: superior systemic bioavailability through efficient intestinal epithelium penetration' },
+  };
+
+  function showPanel(node) {
+    const panel = document.getElementById('graph-node-panel');
+    const cat   = CATEGORIES.find(c => c.id === node.group);
+    const desc  = nodeDesc[node.id] || 'Pathway details unavailable.';
+    document.getElementById('panel-bar').style.background = nodeColor(node);
+    document.getElementById('panel-group').textContent    = cat ? cat.name.toUpperCase() : 'NODE';
+    document.getElementById('panel-title').textContent    = node.name;
+    document.getElementById('panel-desc').textContent     = desc;
+    const imgData  = nodeImages[node.id];
+    const imgWrap  = document.getElementById('panel-img-wrap');
+    if (imgData) {
+      document.getElementById('panel-image').src = imgData.src;
+      document.getElementById('panel-img-cap').textContent = imgData.cap;
+      imgWrap.style.display = 'block';
+    } else {
+      imgWrap.style.display = 'none';
+    }
+    const strongEl = document.getElementById('panel-strong');
+    if (desc.includes('STRONG')) {
+      strongEl.style.display = 'flex';
+      strongEl.querySelector('svg').setAttribute('stroke', nodeColor(node));
+      strongEl.style.background = nodeColor(node) + '18';
+      strongEl.style.borderColor = nodeColor(node) + '40';
+      strongEl.querySelector('p').style.color = nodeColor(node);
+    } else {
+      strongEl.style.display = 'none';
+    }
+    panel.classList.add('open');
+  }
+
+  // Category filter UI
+  const catWrap = document.getElementById('cat-filters');
+  CATEGORIES.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn active';
+    btn.innerHTML = `<div class="cat-dot" style="background:${CAT_COLORS[cat.id]}"></div>${cat.name}`;
+    btn.dataset.id = cat.id;
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.id);
+      if (activeCategories.has(id)) { activeCategories.delete(id); btn.classList.remove('active'); btn.querySelector('.cat-dot').style.background = '#555'; }
+      else { activeCategories.add(id); btn.classList.add('active'); btn.querySelector('.cat-dot').style.background = CAT_COLORS[id]; }
+      // Rebuild
+      nodes = getNodes().map(n => ({...n}));
+      links = getLinks(new Set(nodes.map(n => n.id)));
+      sim.nodes(nodes);
+      sim.force('link').links(links);
+      sim.alpha(0.4).restart();
+    });
+    catWrap.appendChild(btn);
+  });
+
+  // Mobile hint update
+  if (isMob) {
+    document.getElementById('zoom-hint').textContent = 'Tap nodes to explore  ·  pinch to zoom';
+  }
+
+  // ── Mobile touch: pan + pinch-zoom + tap ─────────────────────────────────
+  if (isMob) {
+    let touch = null; // stores gesture state
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        touch = {
+          type: 'pan',
+          startCX: e.touches[0].clientX,
+          startCY: e.touches[0].clientY,
+          startTX: transform.x,
+          startTY: transform.y,
+          startK:  transform.k,
+          moved:   false,
+        };
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const rect = canvas.getBoundingClientRect();
+        touch = {
+          type:     'pinch',
+          startDist: Math.sqrt(dx * dx + dy * dy),
+          pinchCX:  (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left,
+          pinchCY:  (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top,
+          startTX:  transform.x,
+          startTY:  transform.y,
+          startK:   transform.k,
+          moved:    true,
+        };
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!touch) return;
+
+      if (e.touches.length === 1 && touch.type === 'pan') {
+        const dx = e.touches[0].clientX - touch.startCX;
+        const dy = e.touches[0].clientY - touch.startCY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) touch.moved = true;
+        transform = { x: touch.startTX + dx, y: touch.startTY + dy, k: touch.startK };
+        draw();
+
+      } else if (e.touches.length === 2 && touch.type === 'pinch') {
+        const dx   = e.touches[0].clientX - e.touches[1].clientX;
+        const dy   = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const newK = Math.max(0.25, Math.min(4, touch.startK * dist / touch.startDist));
+        // Zoom anchored at the initial pinch center
+        const pcx = touch.pinchCX;
+        const pcy = touch.pinchCY;
+        const cvX = (pcx - touch.startTX) / touch.startK;
+        const cvY = (pcy - touch.startTY) / touch.startK;
+        transform = { x: pcx - cvX * newK, y: pcy - cvY * newK, k: newK };
+        draw();
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (!touch) return;
+      // A non-moved single-finger touch is a tap → try node click
+      if (!touch.moved && touch.type === 'pan' && e.changedTouches.length === 1) {
+        const rect = canvas.getBoundingClientRect();
+        const t    = e.changedTouches[0];
+        const mx   = (t.clientX - rect.left - transform.x) / transform.k;
+        const my   = (t.clientY - rect.top  - transform.y) / transform.k;
+        for (const n of nodes) {
+          if (!n.x) continue;
+          const dx = n.x - mx, dy = n.y - my;
+          if (Math.sqrt(dx * dx + dy * dy) < nodeRadius(n) + 12) {
+            if (n.id === 'Center' || n.val >= 20) break;
+            activeNode = n;
+            showPanel(n);
+            draw();
+            break;
+          }
+        }
+      }
+      if (e.touches.length === 0) touch = null;
+    });
+  }
+})();
+
+// ─── Coverflow Carousel ─────────────────────────────────────────────────────
+(function initCoverflow() {
+  const snippets = [
+    { src: S + 'Screenshot_20251230_153046_Chrome.jpg?v=1783411025',  label: 'FLL Preclinical Study: Femoral BMD & Bone Architecture by Dose' },
+    { src: S + 'Screenshot_20251230_153105_Chrome.jpg?v=1783411025',  label: 'Ca Absorption & Retention Rate: Dose-Response' },
+    { src: S + 'Screenshot_20251230_153122_Chrome.jpg?v=1783411025',  label: 'Renal 1-OHase mRNA Upregulation (Vitamin D Axis)' },
+    { src: S + 'Screenshot_20251230_155204_Chrome.jpg?v=1783411025',  label: 'FLL Bone Turnover: OCN (formation) Increase, CTX-I (resorption) Decrease, Ca Absorption via VDR/1α-hydroxylase/calbindin-D9k Upregulation' },
+    { src: S + 'Screenshot_20251230_155337_Chrome.jpg?v=1783411025',  label: 'FLL Wnt/β-catenin Activation: DKK1 and SOST Inhibition Promotes Osteoblastic Bone Formation — Salidroside Identified as Primary Active Ingredient' },
+    { src: S + 'Screenshot_20251230_155554_Chrome.jpg?v=1783411025',  label: 'FLL Study Conclusion: Canonical Wnt/β-catenin Induction via DKK1/SOST Inhibition Preserves Bone Quality' },
+    { src: S + 'BMRI2015-281873.001.jpg?v=1783411025',               label: 'FLL Triterpene Structure: Oleanolic Acid Molecular Formula' },
+    { src: S + 'BMRI2015-281873.002.jpg?v=1783411025',               label: 'FLL Bioactive Compounds: Saponin & Glycoside Structures' },
+    { src: S + 'Screenshot_20251230_234143_Chrome.jpg?v=1783411025', label: 'FLL Dose-Dependent BMD Improvement: Increases Bone Mineral Density and Mechanical Properties via Elevated Ca Absorption/Retention and RANKL/OPG Modulation (Ying Lyu Review)' },
+    { src: S + 'Screenshot_20251230_233830_Chrome.jpg?v=1783411024', label: 'FLL Osteogenesis Promotion: Improves Bone Microstructure (BMD, BV/TV, Calcium Retention) and Enhances Osteoblast Proliferation and OPG Expression' },
+    { src: S + 'Screenshot_20251230_235137_Chrome.jpg?v=1783411025', label: 'FLL In Vitro Mineralization: FLL Extracts Accelerate Calcified Matrix Formation and Increase Extracellular Ca/P Deposition in Osteoblasts (Time- and Dose-Dependent)' },
+    { src: S + 'Screenshot_20260107_074245_Chrome.jpg?v=1783411025', label: 'FLL Epiphyseal Growth Plate Restoration: Safranin O Histology Shows FLL Increases Growth Plate Cartilage Thickness by ~24% in Aging Mice (p < 0.05)' },
+    { src: S + 'image_2.png?v=1783411025',                           label: 'FLL Multi-Pathway Mechanism: PTH/CaSR/VDR Calcium Regulation, ERα/RANKL/OPG/MAPK Osteoclast Suppression, Nox4/ROS/NF-κB Antioxidant Control' },
+    { src: S + 'image_3.png?v=1783411025',                           label: 'FLL 14 Bioactive Compounds: Triterpenoids (Oleanolic Acid, Ursolic Acid), Iridoid Glycosides (Nuzhenide through Oleoside Esters), Salidroside, Phenols' },
+    { src: S + 'IMG_9200.jpg?v=1783411025',                          label: 'FLL + Exercise: Trabecular Bone Spacing, Number & Histology' },
+    { src: S + 'image_4.png?v=1783411025',                           label: 'Morris Water Maze: FLL Restores Spatial Memory and Learning in Aging Mice — Improved Platform Crossings, Target Zone Dwell Time, and Escape Latency' },
+    { src: S + 'image_5.png?v=1783411025',                           label: 'FLL Articular Cartilage: H&E and Safranin-O Histology Showing FLL Preserves Cartilage Proteoglycan Matrix — IOD Values Across Normal/Aging/VE/FLL Groups' },
+    { src: S + 'image_6.png?v=1783411025',                           label: 'FLL Suppresses NF-κB p65 and Cathepsin K: IHC and Western Blot Confirm Reduced Acetyl-NF-κB-p65 and Cathepsin K in Aging Bone' },
+    { src: S + 'image_7.png?v=1783411025',                           label: 'FLL 3D microCT and Biomechanics: Trabecular Parameters (BV/TV, Tb.N, Tb.Sp, Tb.Th), Cortical Metrics (Ct.Ar, Ct.Th), and Bone Mechanical Strength' },
+    { src: S + 'image_8.png?v=1783411026',                           label: 'FLL Sirt6 Upregulation: IHC in Hippocampal Neurons and Osteoblasts + Serum IL-2 Restoration and TNF-α Reduction (Normal/Aging/Aging+FLL)' },
+    { src: S + 'image_9.png?v=1783411025',                           label: 'FLL Dual Mechanism: Gut Flora Dysbiosis → TMAO → Oxidative Stress Blocked by Sirt6↑ → NF-κB-p65↓ → Cathepsin K↓, Protecting Bone and Brain' },
+    { src: S + 'IMG_0608.jpg?v=1783411025',                          label: 'GO Biological Process Enrichment: FLL Osteoblast & Ossification Pathways' },
+    { src: S + 'IMG_1503.jpg?v=1783411025',                          label: 'GO Molecular Function Enrichment: FLL Kinase, Receptor & Transcription Targets' },
+    { src: S + 'IMG_1502.jpg?v=1783411025',                          label: 'GO Cellular Component Enrichment: FLL Nuclear Matrix & Chromatin Locations' },
+    { src: S + 'image_10.png?v=1783411026',                          label: 'Ursolic Acid Macrophage Mechanism: LPS/TLR-4/M1 Inhibition, M1/M2 Polarization Balance, Autophagy — Brain/Bone/Liver/Skin Systemic Protection' },
+    { src: S + 'image_11.png?v=1783411026',                          label: 'Ursolic Acid Immunological Network: M1/M2 Polarization, NF-κB/pSTAT1/MAPK Suppression, Autophagy — Links to Osteoporosis, Alzheimer, Liver Fibrosis, Atherosclerosis' },
+    { src: S + 'image_12.png?v=1783411026',                          label: 'Ursolic Acid Multi-Organ Body Map: Brain (ROS/NF-κB/NLRP3), Bone (JNK/MAPK/TLR/NF-κB Osteoclast), Blood Vessels (NOX4), Liver (NLRP3 Pyroptosis), Skin' },
+    { src: S + 'image_13.png?v=1783411025',                          label: 'Ursolic Acid Five-Organ Radial Effects: Bone (Osteoclast Inhibition), Skin (Wound Healing), Vessels (Autophagy/Foam Cells), Brain (Neuroprotection), Liver (Fibrosis)' },
+    { src: S + 'image_14.png?v=1783411025',                          label: 'Ursolic Acid 11 Pharmacological Activities: Antifungal, Antimalarial, Antihistaminic, Cardioprotective, Anti-Inflammatory, Anticancer, Antioxidant, Antidiabetic, Antibacterial' },
+    { src: S + 'image_15.png?v=1783411025',                          label: 'LLF Comprehensive Mechanism: Bone Remodeling Balance, CaSR/PTH Calcium Homeostasis, Nox4/ROS/NF-κB Antioxidant, BMSCs Osteogenesis Promotion' },
+    { src: S + 'https___www.frontiersin.org_files_Articles_1330732_xml-images_fphar-15-1330732-g001_1.webp?v=1783411025', label: 'Frontiers Pharmacology: FLL Phytochemistry Overview' },
+    { src: S + 'image_16.png?v=1783411025',                          label: 'Ligustrum lucidum Multi-System Pharmacology: Anti-Inflammatory, Anti-Tumor, Anti-Osteoporosis, Hepatoprotection, Antioxidant, Anti-Depression — Comprehensive Mechanism Diagram' },
+    { src: S + 'image_17.png?v=1783411025',                          label: 'FLL Calcium Homeostasis: Kidney 1,25(OH)₂D₃ + Gut Microbiota SCFAs → TRPV6/CaBP-9K/VDR Upregulation → Enhanced Intestinal Ca²⁺ Absorption → Bone Deposition' },
+    { src: S + 'FLLClinicalStudy2.png?v=1781936649',                 label: 'Clinical Trial Result: >0.5% BMD Increase in Hip and Spine at 3 Months, Zero Adverse Events — FLL Safe and Effective (Leung et al.)' },
+    { src: S + 'FLLClinicalStudy.png?v=1781936649',                  label: 'Leung et al. 2015 Clinical Conclusion: Laboratory and Clinical Evidence Establish FLL as a Safe, Effective Nutritional Supplement for Bone Health' },
+    { src: S + 'FLLClinicalStudy3.png?v=1781936649',                 label: 'Clinical Trial: Biochemical Markers' },
+    { src: S + 'FLLClinicalStudy4.png?v=1781936649',                 label: 'Clinical Trial Conclusion' },
+  ];
+
+  let cfActive = 0;
+  const wrap = document.getElementById('coverflow');
+  const dotsEl = document.getElementById('cf-dots');
+  const labelEl = document.getElementById('cf-label');
+
+  // Build dots
+  snippets.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.style.cssText = 'background:none;border:none;cursor:pointer;padding:0;';
+    dot.innerHTML = `<div style="border-radius:9999px;transition:all .3s;background:var(--border);width:8px;height:8px;"></div>`;
+    dot.addEventListener('click', () => setCf(i));
+    dot.dataset.i = i;
+    dotsEl.appendChild(dot);
+  });
+
+  function updateDots() {
+    dotsEl.querySelectorAll('button').forEach((b, i) => {
+      const d = b.querySelector('div');
+      if (i === cfActive) { d.style.width = '24px'; d.style.background = 'var(--primary)'; }
+      else { d.style.width = '8px'; d.style.background = 'var(--border)'; }
+    });
+    labelEl.textContent = (cfActive + 1) + ' / ' + snippets.length + ', ' + snippets[cfActive].label;
+  }
+
+  function setCf(i) {
+    cfActive = ((i % snippets.length) + snippets.length) % snippets.length;
+    renderCf();
+    updateDots();
+  }
+
+  function renderCf() {
+    wrap.innerHTML = '';
+    const total = snippets.length;
+    const isMob = window.innerWidth < 640;
+    const spacing = isMob ? 130 : 200;
+    const maxShow = isMob ? 2 : 3;
+
+    snippets.forEach((item, i) => {
+      let off = i - cfActive;
+      if (off >  total / 2) off -= total;
+      if (off < -total / 2) off += total;
+      const abs = Math.abs(off);
+      if (abs > maxShow) return;
+
+      const tx      = off * spacing;
+      const ry      = off * -38;
+      const scale   = Math.max(0.45, 1 - abs * 0.2);
+      const opacity = Math.max(0.15, 1 - abs * 0.3);
+      const zIdx    = 10 - abs;
+      const bright  = Math.max(40, 100 - abs * 25);
+
+      const el = document.createElement('div');
+      el.className = 'cf-item';
+      el.style.cssText = `top:50%;transform:translateX(${tx}px) translateY(-50%) rotateY(${ry}deg) scale(${scale});opacity:${opacity};z-index:${zIdx};filter:brightness(${bright}%);`;
+      el.innerHTML = `
+        <div style="border-radius:.75rem;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:var(--card);box-shadow:0 20px 60px rgba(0,0,0,.6);">
+          <img src="${item.src}" alt="${item.label}" loading="lazy" style="width:100%;height:200px;object-fit:cover;object-position:top;display:block;">
+          <div class="cf-label">${item.label}</div>
+          ${abs === 0 ? '<div style="font-size:.6rem;font-family:monospace;color:var(--primary);font-weight:700;padding:.2rem .5rem .5rem;display:flex;align-items:center;gap:.3rem;"><span>+</span> Click to expand</div>' : ''}
+        </div>`;
+      el.addEventListener('click', () => {
+        if (abs === 0) openLightbox(item.src);
+        else setCf(i);
+      });
+      wrap.appendChild(el);
+    });
+  }
+
+  renderCf();
+  updateDots();
+
+  window.cfPrev = () => setCf(cfActive - 1);
+  window.cfNext = () => setCf(cfActive + 1);
+
+  // Touch swipe support
+  let _tx0 = 0;
+  wrap.addEventListener('touchstart', e => { _tx0 = e.touches[0].clientX; }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    const d = e.changedTouches[0].clientX - _tx0;
+    if (Math.abs(d) > 40) { d < 0 ? cfNext() : cfPrev(); }
+  }, { passive: true });
+
+  // Arrow key support
+  document.addEventListener('keydown', e => {
+    const snipSection = document.getElementById('snippets');
+    if (!snipSection) return;
+    const rect = snipSection.getBoundingClientRect();
+    if (rect.top > window.innerHeight || rect.bottom < 0) return;
+    if (e.key === 'ArrowLeft') cfPrev();
+    if (e.key === 'ArrowRight') cfNext();
+  });
+})();
+</script>
+</body>
+</html>
