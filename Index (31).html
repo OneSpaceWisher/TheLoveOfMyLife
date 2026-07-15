@@ -116,7 +116,7 @@ section{
 }
 
 /* ─────────── HERO ─────────── */
-#hero{overflow:hidden;text-align:center}
+#hero{overflow-x:hidden;overflow-y:visible;text-align:center}
 .hero-tagline{
   font-size:.68rem;letter-spacing:.42em;text-transform:uppercase;
   color:rgba(157,78,221,.78);margin-bottom:1.4rem;
@@ -134,6 +134,8 @@ section{
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
   animation:heartGlow 4s ease-in-out infinite, fadeInUp 1.4s ease .3s both;
   filter:drop-shadow(0 2px 14px rgba(157,78,221,.35));
+  padding-top:2.5rem;
+  padding-bottom:1rem;
 }
 .hero-sparkle{
   position:absolute;animation:pulse 2.5s ease-in-out infinite;
@@ -439,10 +441,10 @@ section{
 }
 .buttons-area{
   position:relative;
-  min-height:220px;
+  min-height:180px;
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  gap:1.5rem;
+  gap:2rem;
   margin-top:3rem;
   width:100%;
   max-width:600px;
@@ -480,7 +482,7 @@ section{
   cursor:pointer;
   backdrop-filter:blur(6px);
   box-shadow:0 2px 10px rgba(0,0,0,.06);
-  position:absolute;
+  position:relative;
   transition:transform .25s cubic-bezier(.34,1.56,.64,1);
   touch-action:none;
   z-index:20;
@@ -664,7 +666,7 @@ footer{
     </div>
   </div>
 
-  <h3 class="movies-heading reveal">...and the movies that make her feel things 🎬</h3>
+  <h3 class="movies-heading reveal">...and the movies that make you feel things 🎬</h3>
   <div class="movies-grid">
     <div class="movie-card reveal reveal-delay-1" style="background:linear-gradient(135deg,rgba(251,191,36,.38),rgba(252,165,165,.38))">
       <span class="movie-emoji">🏰</span>
@@ -785,6 +787,155 @@ footer{
   </div>
 </section>
 
+<!-- ══════════════ PLUSH SECTION ══════════════ -->
+<section id="plush" style="text-align:center">
+  <h2 class="section-title reveal">Us, but make it cute 🐾</h2>
+  <p class="reveal reveal-delay-1" style="font-size:.95rem;color:rgba(45,27,74,.6);margin-bottom:3rem;max-width:320px">
+    You with your lil pup, me with my Kuromi. Best duo ever.
+  </p>
+
+  <div class="reveal reveal-delay-2" style="max-width:420px;width:100%;margin:0 auto;animation:sway 5s ease-in-out infinite">
+    <svg viewBox="0 0 390 285" fill="none" xmlns="http://www.w3.org/2000/svg"
+         style="width:100%;height:auto;filter:drop-shadow(0 12px 32px rgba(157,78,221,.15))">
+
+      <!-- Hearts background -->
+      <g class="plush-hearts">
+        <path transform="translate(32,48) scale(0.7)"  d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#e040fb"/>
+        <path transform="translate(190,28) scale(0.9)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#f06292"/>
+        <path transform="translate(348,52) scale(0.75)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#ba68c8"/>
+        <path transform="translate(22,168) scale(0.55)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#ff4081"/>
+        <path transform="translate(370,172) scale(0.6)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#ce93d8"/>
+        <path transform="translate(82,220) scale(0.65)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#f48fb1"/>
+        <path transform="translate(300,218) scale(0.8)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#e040fb"/>
+        <path transform="translate(190,245) scale(1.0)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#f06292"/>
+        <path transform="translate(138,72) scale(0.5)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#ba68c8"/>
+        <path transform="translate(252,70) scale(0.55)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#ff80ab"/>
+        <path transform="translate(52,118) scale(0.45)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#e040fb"/>
+        <path transform="translate(338,116) scale(0.5)" d="M0 3 C0 0 -4 -4 -7 -1 C-10 2 -7 7 0 12 C7 7 10 2 7 -1 C4 -4 0 0 0 3Z" fill="#f48fb1"/>
+      </g>
+
+      <!-- ══ KUROMI (left) ══ -->
+      <!-- Bat ears -->
+      <path d="M68 95 L55 52 L90 80 Z" fill="#1a1a1a"/>
+      <path d="M68 95 L57 60 L85 82 Z" fill="#2d2d2d"/>
+      <path d="M148 95 L161 52 L126 80 Z" fill="#1a1a1a"/>
+      <path d="M148 95 L159 60 L131 82 Z" fill="#2d2d2d"/>
+      <!-- Pink skull -->
+      <ellipse cx="108" cy="66" rx="11" ry="9" fill="#f8bbd0"/>
+      <circle cx="104" cy="64" r="2.5" fill="#1a1a1a"/>
+      <circle cx="112" cy="64" r="2.5" fill="#1a1a1a"/>
+      <path d="M107 68 Q108 70 109 68Z" fill="#f48fb1"/>
+      <!-- Hood -->
+      <ellipse cx="108" cy="114" rx="44" ry="46" fill="#1c1c1c"/>
+      <ellipse cx="95" cy="100" rx="10" ry="8" fill="#2a2a2a"/>
+      <!-- White face -->
+      <ellipse cx="108" cy="124" rx="30" ry="28" fill="#f5f5f5"/>
+      <!-- Eyebrows -->
+      <path d="M90 112 L102 117" stroke="#1a1a1a" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M114 117 L126 112" stroke="#1a1a1a" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- Eyes -->
+      <ellipse cx="97"  cy="122" rx="6" ry="6.5" fill="#1a1a1a"/>
+      <ellipse cx="119" cy="122" rx="6" ry="6.5" fill="#1a1a1a"/>
+      <circle cx="99"  cy="120" r="2" fill="white"/>
+      <circle cx="121" cy="120" r="2" fill="white"/>
+      <!-- Nose + smile -->
+      <ellipse cx="108" cy="131" rx="4" ry="3" fill="#f8bbd0"/>
+      <path d="M99 138 Q108 145 117 138" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Body -->
+      <rect x="76" y="158" width="64" height="62" rx="18" fill="#1c1c1c"/>
+      <ellipse cx="108" cy="175" rx="20" ry="18" fill="#f5f5f5"/>
+      <circle cx="104" cy="165" r="3.5" fill="#f48fb1"/>
+      <circle cx="112" cy="165" r="3.5" fill="#f48fb1"/>
+      <!-- Legs -->
+      <rect x="82"  y="212" width="22" height="28" rx="11" fill="#1c1c1c"/>
+      <rect x="112" y="212" width="22" height="28" rx="11" fill="#1c1c1c"/>
+      <ellipse cx="93"  cy="238" rx="13" ry="8" fill="#f5f5f5"/>
+      <ellipse cx="123" cy="238" rx="13" ry="8" fill="#f5f5f5"/>
+      <!-- Left arm reaching right -->
+      <path d="M76 168 Q58 175 52 192" stroke="#1c1c1c" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <circle cx="52" cy="195" r="12" fill="#f5f5f5"/>
+      <circle cx="52" cy="195" r="5"  fill="#f8bbd0"/>
+      <circle cx="44" cy="188" r="3"  fill="#f8bbd0"/>
+      <circle cx="52" cy="186" r="3"  fill="#f8bbd0"/>
+      <circle cx="60" cy="188" r="3"  fill="#f8bbd0"/>
+      <!-- Right arm -->
+      <path d="M140 168 Q158 175 162 190" stroke="#1c1c1c" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <circle cx="164" cy="194" r="12" fill="#f5f5f5"/>
+      <circle cx="164" cy="194" r="5"  fill="#f8bbd0"/>
+      <circle cx="157" cy="188" r="3"  fill="#f8bbd0"/>
+      <circle cx="164" cy="186" r="3"  fill="#f8bbd0"/>
+      <circle cx="171" cy="188" r="3"  fill="#f8bbd0"/>
+      <!-- Tail -->
+      <path d="M140 215 Q162 222 158 235" stroke="#1c1c1c" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <circle cx="157" cy="237" r="5" fill="#1c1c1c"/>
+
+      <!-- ══ Joined hands heart ══ -->
+      <ellipse cx="195" cy="196" rx="24" ry="16" fill="#f8bbd0" opacity="0.4"/>
+      <path transform="translate(195,162)"
+            d="M0 4 C0 0 -6 -5 -10 -1 C-14 3 -10 9 0 16 C10 9 14 3 10 -1 C6 -5 0 0 0 4Z"
+            fill="#f06292" style="animation:pulse 1.8s ease-in-out infinite"/>
+
+      <!-- ══ DOG PLUSH (right) ══ -->
+      <!-- Floppy black ears -->
+      <ellipse cx="254" cy="118" rx="16" ry="32" fill="#1a1a1a" transform="rotate(-10 254 118)"/>
+      <ellipse cx="255" cy="118" rx="11" ry="26" fill="#282828" transform="rotate(-10 255 118)"/>
+      <ellipse cx="310" cy="118" rx="16" ry="32" fill="#1a1a1a" transform="rotate(10 310 118)"/>
+      <ellipse cx="309" cy="118" rx="11" ry="26" fill="#282828" transform="rotate(10 309 118)"/>
+      <!-- Head -->
+      <circle cx="282" cy="116" r="44" fill="#f8f8f8"/>
+      <ellipse cx="282" cy="130" rx="38" ry="30" fill="#f0f0f0"/>
+      <!-- Eyes -->
+      <circle cx="268" cy="112" r="9" fill="#1a1a1a"/>
+      <circle cx="296" cy="112" r="9" fill="#1a1a1a"/>
+      <circle cx="271" cy="109" r="3.5" fill="white"/>
+      <circle cx="299" cy="109" r="3.5" fill="white"/>
+      <circle cx="274" cy="114" r="1.5" fill="white"/>
+      <circle cx="302" cy="114" r="1.5" fill="white"/>
+      <!-- Nose + smile -->
+      <ellipse cx="282" cy="124" rx="6" ry="4.5" fill="#222"/>
+      <path d="M272 133 Q282 141 292 133" stroke="#555" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Cheeks -->
+      <ellipse cx="257" cy="126" rx="9" ry="6" fill="#ffb3c6" opacity="0.5"/>
+      <ellipse cx="307" cy="126" rx="9" ry="6" fill="#ffb3c6" opacity="0.5"/>
+      <!-- Black patch -->
+      <path d="M292 96 Q302 90 308 100 Q306 110 296 108 Q288 106 292 96Z" fill="#2a2a2a"/>
+      <!-- Body -->
+      <rect x="250" y="156" width="64" height="64" rx="20" fill="#f5f5f5"/>
+      <!-- Blue shirt -->
+      <rect x="252" y="162" width="60" height="42" rx="14" fill="#64b5f6"/>
+      <path d="M270 162 Q282 170 294 162" stroke="#90caf9" stroke-width="3" fill="none"/>
+      <circle cx="270" cy="178" r="7" fill="#1976d2"/>
+      <circle cx="270" cy="178" r="5" fill="#42a5f5"/>
+      <text x="270" y="181.5" font-size="5" fill="white" text-anchor="middle" font-weight="bold">♥</text>
+      <!-- Legs -->
+      <rect x="256" y="212" width="22" height="28" rx="11" fill="#f5f5f5"/>
+      <rect x="286" y="212" width="22" height="28" rx="11" fill="#f5f5f5"/>
+      <ellipse cx="267" cy="238" rx="13" ry="8" fill="#f0f0f0"/>
+      <ellipse cx="297" cy="238" rx="13" ry="8" fill="#f0f0f0"/>
+      <!-- Right arm reaching left -->
+      <path d="M250 168 Q230 175 226 192" stroke="#e0e0e0" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <circle cx="224" cy="195" r="12" fill="#f0f0f0"/>
+      <circle cx="224" cy="195" r="5"  fill="#ffb3c6"/>
+      <circle cx="216" cy="188" r="3"  fill="#ffb3c6"/>
+      <circle cx="224" cy="186" r="3"  fill="#ffb3c6"/>
+      <circle cx="232" cy="188" r="3"  fill="#ffb3c6"/>
+      <!-- Left arm -->
+      <path d="M314 168 Q334 175 340 192" stroke="#e0e0e0" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <circle cx="342" cy="195" r="12" fill="#f0f0f0"/>
+      <circle cx="342" cy="195" r="5"  fill="#ffb3c6"/>
+      <circle cx="334" cy="188" r="3"  fill="#ffb3c6"/>
+      <circle cx="342" cy="186" r="3"  fill="#ffb3c6"/>
+      <circle cx="350" cy="188" r="3"  fill="#ffb3c6"/>
+
+      <!-- Labels -->
+      <text x="108" y="275" text-anchor="middle" font-size="11" fill="#9d4edd" font-family="Georgia,serif" font-style="italic">me 💜</text>
+      <text x="282" y="275" text-anchor="middle" font-size="11" fill="#f06292" font-family="Georgia,serif" font-style="italic">Neah 🐾</text>
+    </svg>
+  </div>
+
+  <p class="fav-footer reveal" style="margin-top:2.5rem">Two little plushies, one big feeling. 💜</p>
+</section>
+
 <!-- ══════════════ PROPOSAL ══════════════ -->
 <section id="proposal">
   <h2 class="proposal-heading reveal">Neah...<br/><span class="proposal-sub">will you be my girlfriend?</span></h2>
@@ -882,32 +1033,45 @@ footer{
   // Pre-seeded pseudo-random (deterministic)
   function seededRand(seed){ return ((seed * 1664525 + 1013904223) & 0xffffffff) / 0xffffffff; }
 
-  // Build rose SVG string with depth shading
+  // Build rose SVG — distinct petal shapes, no donut effect
   function roseNode(rot, depth){
     const c = [
-      {o:'#d40000',m:'#e80017',i:'#ff2233',ct:'#8b0000',co:'#5c0000'},
-      {o:'#b30000',m:'#cc001a',i:'#e00020',ct:'#6b0000',co:'#4a0000'},
-      {o:'#8b0000',m:'#aa0011',i:'#c00018',ct:'#560000',co:'#380000'},
+      {p1:'#e8001c',p2:'#cc0015',p3:'#a80010',p4:'#800008',hi:'#ff3348'},
+      {p1:'#cc0015',p2:'#b00010',p3:'#8b000b',p4:'#640006',hi:'#e01020'},
+      {p1:'#a00010',p2:'#860009',p3:'#6b0006',p4:'#4a0003',hi:'#bb1018'},
     ][Math.min(depth,2)];
-    return `<svg viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg"
+
+    // Outer petals at 0,72,144,216,288 deg; inner at 36,108...; innermost at 18,90...
+    const oA=[0,72,144,216,288], mA=[36,108,180,252,324], iA=[18,90,162,234,306];
+
+    const outerPetals = oA.map(a=>`
+      <path transform="rotate(${a} 40 40)"
+        d="M40 40 C33 31 26 17 29 9 Q40 4 40 4 Q51 4 51 9 C54 17 47 31 40 40Z"
+        fill="${c.p1}"/>
+      <path transform="rotate(${a} 40 40)"
+        d="M40 40 C36 32 33 20 35 12 Q40 7 40 7 C40 7 42 12 41 18 C40 26 40 36 40 40Z"
+        fill="${c.hi}" opacity="0.22"/>`).join('');
+
+    const midPetals = mA.map(a=>`
+      <path transform="rotate(${a} 40 40)"
+        d="M40 40 C35 33 31 22 33 15 Q40 11 40 11 Q47 11 47 15 C49 22 45 33 40 40Z"
+        fill="${c.p2}"/>`).join('');
+
+    const innerPetals = iA.map(a=>`
+      <path transform="rotate(${a} 40 40)"
+        d="M40 40 C37 36 34 28 36 22 Q40 19 40 19 Q44 19 44 22 C46 28 43 36 40 40Z"
+        fill="${c.p3}"/>`).join('');
+
+    return `<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"
               style="transform:rotate(${rot}deg);transform-origin:center;width:100%;height:100%">
-      <ellipse cx="45" cy="52" rx="34" ry="30" fill="${c.o}"/>
-      <path d="M45 22 C58 30 64 42 58 54 C52 60 38 60 32 54 C26 42 32 30 45 22Z" fill="${c.o}"/>
-      <path d="M15 38 C22 28 36 28 44 36 C48 46 42 58 32 60 C20 58 12 50 15 38Z" fill="${c.o}"/>
-      <path d="M75 38 C68 28 54 28 46 36 C42 46 48 58 58 60 C70 58 78 50 75 38Z" fill="${c.o}"/>
-      <path d="M22 64 C26 54 38 52 44 56 C50 62 48 72 38 74 C28 74 18 72 22 64Z" fill="${c.o}"/>
-      <path d="M68 64 C64 54 52 52 46 56 C40 62 42 72 52 74 C62 74 72 72 68 64Z" fill="${c.o}"/>
-      <ellipse cx="45" cy="46" rx="26" ry="24" fill="${c.m}"/>
-      <path d="M45 26 C55 33 58 43 52 50 C46 55 34 55 28 50 C22 43 25 33 45 26Z" fill="${c.m}"/>
-      <path d="M22 44 C27 36 38 36 44 42 C47 50 42 58 33 59 C23 57 17 52 22 44Z" fill="${c.m}"/>
-      <path d="M68 44 C63 36 52 36 46 42 C43 50 48 58 57 59 C67 57 73 52 68 44Z" fill="${c.m}"/>
-      <ellipse cx="45" cy="43" rx="18" ry="17" fill="${c.i}"/>
-      <path d="M45 29 C52 35 54 43 48 48 C42 52 32 49 30 43 C28 36 35 29 45 29Z" fill="${c.i}"/>
-      <path d="M31 42 C35 35 43 34 47 39 C50 46 46 53 39 54 C31 52 26 47 31 42Z" fill="${c.i}"/>
-      <path d="M59 42 C55 35 47 34 43 39 C40 46 44 53 51 54 C59 52 64 47 59 42Z" fill="${c.i}"/>
-      <ellipse cx="45" cy="42" rx="11" ry="10" fill="${c.ct}"/>
-      <ellipse cx="45" cy="41" rx="7"  ry="6.5" fill="${c.co}"/>
-      <ellipse cx="45" cy="40" rx="3"  ry="3"   fill="${c.co}" opacity=".9"/>
+      ${outerPetals}
+      ${midPetals}
+      ${innerPetals}
+      <circle cx="40" cy="40" r="9" fill="${c.p4}"/>
+      <circle cx="40" cy="40" r="6" fill="${c.p4}" opacity="0.85"/>
+      <path d="M40 34 C43 35 44 38 42 40 C40 42 37 41 37 39 C37 36 39 34 40 34Z"
+        fill="${c.hi}" opacity="0.35"/>
+      <circle cx="40" cy="39" r="2.5" fill="${c.p4}" opacity="0.9"/>
     </svg>`;
   }
 
